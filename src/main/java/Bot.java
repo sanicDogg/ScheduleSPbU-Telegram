@@ -113,7 +113,7 @@ public class Bot extends TelegramLongPollingBot {
     public SendMessage getMessage(String msg) {
         replyKeyboardMarkup.setSelective(true);
         replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(true);
+        replyKeyboardMarkup.setOneTimeKeyboard(false);
         //specs хранит в себе все направления подгототвки(институты)
         Elements specs = schedule.getInstitutes();
 
