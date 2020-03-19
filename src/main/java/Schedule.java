@@ -100,7 +100,7 @@ public class Schedule {
     }
 
     //В day нужно передавать номер дня в расписании(начинается с нуля) на неделю, чтобы получить расписание на день
-    public String getSchedule(int day) {
+    public String getSchedule(int day) throws IndexOutOfBoundsException{
         StringBuilder sb = new StringBuilder();
         Elements accordion = document.select("#accordion .panel");
         accordion = accordion.select(".panel");

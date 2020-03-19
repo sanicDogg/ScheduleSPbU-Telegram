@@ -68,7 +68,14 @@ public class Bot extends TelegramLongPollingBot {
 
                 if (response.equals("next")) {
                     day++;
-                    String textSchedule = schedule.getSchedule(day);
+                    String textSchedule;
+                    try {
+                        textSchedule = schedule.getSchedule(day);
+                    } catch (IndexOutOfBoundsException e) {
+                        SendMessage errorMessage = getErrorMessage();
+                        execute(errorMessage);
+                        return;
+                    }
                     setInlineKeyboard();
                     //Проверка
                     EditMessageText emt = editTemplateMessage
@@ -79,7 +86,14 @@ public class Bot extends TelegramLongPollingBot {
 
                 if (response.equals("prev")) {
                     day--;
-                    String textSchedule = schedule.getSchedule(day);
+                    String textSchedule;
+                    try {
+                        textSchedule = schedule.getSchedule(day);
+                    } catch (IndexOutOfBoundsException e) {
+                        SendMessage errorMessage = getErrorMessage();
+                        execute(errorMessage);
+                        return;
+                    }
                     setInlineKeyboard();
                     EditMessageText emt = editTemplateMessage
                             (textSchedule, update.getCallbackQuery().getMessage().getMessageId(), true);
@@ -369,6 +383,7 @@ public class Bot extends TelegramLongPollingBot {
     public SendMessage outTemplateMessage(String text, Boolean needInlineKeyboard, Boolean needReplyKeyboard){
         SendMessage sm = new SendMessage();
         sm.setText(text);
+        sm.setChatId(chat_id);
         sm.setParseMode("HTML");
         if (!(needInlineKeyboard && needReplyKeyboard)) {
             if (needInlineKeyboard) sm.setReplyMarkup(inlineKeyboardMarkup);
@@ -381,6 +396,7 @@ public class Bot extends TelegramLongPollingBot {
         SendMessage sm = new SendMessage();
         sm.setText(text);
         sm.setParseMode("HTML");
+        sm.setChatId(chat_id);
 
         return sm;
     }
