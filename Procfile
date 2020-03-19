@@ -1,1 +1,1 @@
-worker: sh target/bin/ScheduleSPbU-Telegram
+worker: sh target/bin/runBot
