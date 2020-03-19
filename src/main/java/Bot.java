@@ -131,7 +131,7 @@ public class Bot extends TelegramLongPollingBot {
 
                     setInlineKeyboard();
                     //Тут сделать привязку ко дню
-                    return outTemplateMessage(schedule.getSchedule(0), true, false);
+                    return outTemplateMessage(schedule.getSchedule(day), true, false);
                 }
             }
         }
@@ -211,6 +211,7 @@ public class Bot extends TelegramLongPollingBot {
         //Команда "/start"
         if (msg.equals("/start")) {
             //Очищаем все переменные и подключаемся к корню сайта
+            day = 0;
             clearVars();
             clearURL();
             studyLevelsList.clear();
@@ -246,6 +247,7 @@ public class Bot extends TelegramLongPollingBot {
         if (msg.equals("/rasp") || msg.equals("р") || msg.equals("расписание") || msg.equals("r")) {
             clearVars();
             clearURL();
+            day = 0;
 
             try {
                 schedule.connect(schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
@@ -254,7 +256,7 @@ public class Bot extends TelegramLongPollingBot {
             }
 
             //Тут поменять на нужный день
-            String textSchedule = schedule.getSchedule(0);
+            String textSchedule = schedule.getSchedule(day);
 
             setInlineKeyboard();
             return outTemplateMessage(textSchedule, true, false);
