@@ -253,7 +253,8 @@ public class Bot extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
 
-            String textSchedule = schedule.getSchedule(day);
+            //Тут поменять на нужный день
+            String textSchedule = schedule.getSchedule(0);
 
             setInlineKeyboard();
             return outTemplateMessage(textSchedule, true, false);
