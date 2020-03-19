@@ -72,9 +72,8 @@ public class Bot extends TelegramLongPollingBot {
                     try {
                         textSchedule = schedule.getSchedule(day);
                     } catch (IndexOutOfBoundsException e) {
-                        SendMessage errorMessage = getErrorMessage();
-                        execute(errorMessage);
-                        return;
+                        day--;
+                        textSchedule = schedule.getSchedule(day);
                     }
                     setInlineKeyboard();
                     //Проверка
@@ -90,9 +89,8 @@ public class Bot extends TelegramLongPollingBot {
                     try {
                         textSchedule = schedule.getSchedule(day);
                     } catch (IndexOutOfBoundsException e) {
-                        SendMessage errorMessage = getErrorMessage();
-                        execute(errorMessage);
-                        return;
+                        day++;
+                        textSchedule = schedule.getSchedule(day);
                     }
                     setInlineKeyboard();
                     EditMessageText emt = editTemplateMessage
