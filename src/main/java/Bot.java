@@ -130,7 +130,8 @@ public class Bot extends TelegramLongPollingBot {
                     }
 
                     setInlineKeyboard();
-                    return outTemplateMessage(schedule.getSchedule(day), true, false);
+                    //Тут сделать привязку ко дню
+                    return outTemplateMessage(schedule.getSchedule(0), true, false);
                 }
             }
         }
