@@ -3,6 +3,7 @@ import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -11,15 +12,15 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
+//    public final String BOT_USERNAME = "@scheduleSPbU_bot";
+//    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+
     //    Константы
-    public final String BOT_USERNAME = "@scheduleSPbU_bot";
-    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
+    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
     //    id текущего чата
     private long chat_id;
     //хранит номер текущего дня
@@ -56,6 +57,8 @@ public class Bot extends TelegramLongPollingBot {
             SendMessage sendMessage;
             sendMessage = getMessage(update.getMessage().getText());
             sendMessage.setChatId(chat_id);
+            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() +
+                    "\n с содержимым " + update.getMessage().getText());
 
             try {
                 execute(sendMessage);
@@ -63,46 +66,38 @@ public class Bot extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
         } else if (update.hasCallbackQuery()) {
+            String response = update.getCallbackQuery().getData();
+            Message message = update.getCallbackQuery().getMessage();
+            EditMessageText answered = answerCallbackQuery(response, message);
+            System.out.println("Пришел callbackQuery от пользователя " + message.getChatId() +
+                    "\n сообщение " + message.getMessageId() +
+                    "\n с содержимым " + response);
+
             try {
-                String response = update.getCallbackQuery().getData();
-
-                if (response.equals("next")) {
-                    day++;
-                    String textSchedule;
-                    try {
-                        textSchedule = schedule.getSchedule(day);
-                    } catch (IndexOutOfBoundsException e) {
-                        day--;
-                        textSchedule = schedule.getSchedule(day);
-                    }
-                    setInlineKeyboard();
-                    //Проверка
-                    EditMessageText emt = editTemplateMessage
-                            (textSchedule, update.getCallbackQuery().getMessage().getMessageId(), true);
-
-                    execute(emt);
-                }
-
-                if (response.equals("prev")) {
-                    day--;
-                    String textSchedule;
-                    try {
-                        textSchedule = schedule.getSchedule(day);
-                    } catch (IndexOutOfBoundsException e) {
-                        day++;
-                        textSchedule = schedule.getSchedule(day);
-                    }
-                    setInlineKeyboard();
-                    EditMessageText emt = editTemplateMessage
-                            (textSchedule, update.getCallbackQuery().getMessage().getMessageId(), true);
-                    execute(emt);
-                }
-
-            } catch (TelegramApiException e) {
+                execute(answered);
+            } catch (TelegramApiException e){
                 e.printStackTrace();
             }
         }
     }
+
+    //Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
+    public EditMessageText answerCallbackQuery(String response, Message message) {
+        String textSchedule;
+        if (response.equals("next")) day++;
+        if (response.equals("prev")) day--;
+        try { textSchedule = schedule.getSchedule(day); }
+        //Проверка переменной day на выход из интервала
+        //Пока ее инкременим/декрементим обратно
+        catch (IndexOutOfBoundsException e) {
+            if (response.equals("next")) day--;
+            if (response.equals("prev")) day++;
+            textSchedule = "Занятий не найдено";
+        }
+        setInlineKeyboard();
+        return editTemplateMessage(textSchedule, message.getMessageId(), true);
+    }
+
 
     // Метод формирует ответ бота на сообщение пользователя
 //      Метод должен возвращать объект SendMessage с текстом
@@ -171,11 +166,24 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
-        //Если нажали на одно из направлений подготовки(институт)
-        //Тут формируем клавиатуру с уровнями подготовки
+        //Если нажали на магистратуру/бакалавриат и т.д.
+        for (String s :
+                studyLevelsList) {
+            if (msg.equals(s)) {
+                if (checkURL()) {
+                    currentStudyLevel = s;
+                    return outSecondSpec(s);
+                }
+                else return getErrorMessage();
+            }
+        }
+
+        //Если нажали на одно из меганаправлений(институт)
+        //Тут формируем клавиатуру с уровнями подготовки(бакалавриат, магистратура и т.д.)
+
         for (Element e :
                 specs) {
-            if (msg.equals(e.text())){
+            if (msg.equals(e.text())) {
                 clearVars();
                 url.append(e.attr("href"));
 
@@ -190,19 +198,7 @@ public class Bot extends TelegramLongPollingBot {
                 }
                 replyKeyboardMarkup.setKeyboard(keyboard);
 
-                return outTemplateMessage(e.text() + "\n" + url,false,true);
-            }
-        }
-
-        //Если нажали на магистратуру/бакалавриат и т.д.
-        for (String s :
-                studyLevelsList) {
-            if (msg.equals(s)) {
-                if (checkURL()) {
-                    currentStudyLevel = s;
-                    return outSecondSpec(s);
-                }
-                else return getErrorMessage();
+                return outTemplateMessage(e.text() + "\n" + url, false, true);
             }
         }
 
