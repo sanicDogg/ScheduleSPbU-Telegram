@@ -15,12 +15,13 @@ import java.io.IOException;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
-//    public final String BOT_USERNAME = "@scheduleSPbU_bot";
-//    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+//    //TEST-BOT
+//    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
+//    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
 
     //    Константы
-    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
-    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
+    public final String BOT_USERNAME = "@scheduleSPbU_bot";
+    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
     //    id текущего чата
     private long chat_id;
     //хранит номер текущего дня
