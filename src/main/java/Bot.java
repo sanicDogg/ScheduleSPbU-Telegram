@@ -1,6 +1,7 @@
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatMember;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -10,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMar
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.meta.api.methods.GetUserProfilePhotos;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -18,12 +20,14 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
-//    //TEST-BOT
+    //TEST-BOT
 //    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
 //    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
+
     //    Константы
     public final String BOT_USERNAME = "@scheduleSPbU_bot";
     public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+
     private LocalDate todayIs;
     private String formattedTodayIs;
     //    id текущего чата
@@ -67,7 +71,8 @@ public class Bot extends TelegramLongPollingBot {
             SendMessage sendMessage;
             sendMessage = getMessage(update.getMessage().getText());
             sendMessage.setChatId(chat_id);
-            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() +
+            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + "\n"
+                    + update.getMessage().getFrom().getUserName() +
                     "\n с содержимым " + update.getMessage().getText());
 
             try {
