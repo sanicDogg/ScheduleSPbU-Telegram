@@ -2,8 +2,8 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Schedule {
@@ -100,67 +100,60 @@ public class Schedule {
     }
 
     //В day нужно передавать номер дня в расписании(начинается с нуля) на неделю, чтобы получить расписание на день
-    public String getSchedule(int day) throws IndexOutOfBoundsException{
-        StringBuilder sb = new StringBuilder();
-        Elements accordion = document.select("#accordion .panel");
-        accordion = accordion.select(".panel");
-
-        Element element = accordion.get(day);
-//            Получаем дату
-        sb.append(element.select(".panel-heading h4").text()).append("\n");
-
-        Elements subjects = element.select("ul li");
-        for (Element subject : subjects) {
-//                Получаем время
-            sb.append(subject.select(".studyevent-datetime").text()).append("\n");
-//                    Получаем предмет
-            sb.append("<b>").append(subject.select(".studyevent-subject").text()).append("</b>\n");
-//                    Получаем место проведения занятия
-            String location = subject.select(".studyevent-locations").text();
-            sb.append(location).append("\n");
-
-//            String cabinet = location.substring(location.length() - 3);
-//            location = location.substring(0, location.length() - 4);
-//            //Выделяем курсивом номер аудитории
-//            sb.append(location).append("\n <i>Аудитория: ")
-//                    .append(cabinet).append("</i>")
-//                    .append("\n");
-//          Получаем преподавателя
-            sb.append(subject.select(".studyevent-educators").text()).append("\n");
-            sb.append("\n");
-        }
-        sb.append("\n");
-
-        return sb.toString();
-    }
-
-    //Расписание на неделю
-    public String getSchedule() {
+    public ArrayList<ScheduleWithDate> getSchedule() throws IndexOutOfBoundsException{
+        ArrayList<ScheduleWithDate> scheduleWithDateList = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         Elements accordion = document.select("#accordion .panel");
         accordion = accordion.select(".panel");
 
         for (Element element : accordion) {
-            //            Получаем дату
-            sb.append(element.select(".panel-heading h4").text()).append("\n");
+            sb.setLength(0);
+//            Получаем дату
+            String stringDate = element.select(".panel-heading h4").text();
+            sb.append(stringDate).append("\n");
+            //Получаем дату в формате "23 марта"(без дня недели)
+            String month = stringDate.substring(getIndexOfLastSpace(stringDate));
+            stringDate = stringDate.substring(0, getIndexOfLastSpace(stringDate));
+            String dayOfMonth = stringDate.substring(getIndexOfLastSpace(stringDate) + 1);
+            stringDate = dayOfMonth + month;
 
             Elements subjects = element.select("ul li");
             for (Element subject : subjects) {
 //                Получаем время
                 sb.append(subject.select(".studyevent-datetime").text()).append("\n");
 //                    Получаем предмет
-                sb.append(subject.select(".studyevent-subject").text()).append("\n");
-                //                Получаем время
-                sb.append(subject.select(".studyevent-datetime").text()).append("\n");
-//                    Получаем место проведения занятия
-                sb.append(subject.select(".studyevent-locations").text()).append("\n");
+                sb.append("<b>").append(subject.select(".studyevent-subject").text()).append("</b>\n");
+//          Получаем место проведения занятия
+                String location = subject.select(".studyevent-locations").text();
 
-                //Получаем преподавателя
+                //Находим индекс начала номера аудитории с конца
+                int beginIndex = getIndexOfLastSpace(location);
+                String cabinet = location.substring(beginIndex);
+                location = location.substring(0, beginIndex - 1);
+                //Выделяем курсивом номер аудитории
+                sb.append(location).append("\n <i>Аудитория: ")
+                        .append(cabinet).append("</i>")
+                        .append("\n");
+//          Получаем преподавателя
                 sb.append(subject.select(".studyevent-educators").text()).append("\n");
+                sb.append("\n");
             }
             sb.append("\n");
+            scheduleWithDateList.add(new ScheduleWithDate(sb.toString(), stringDate));
         }
 
-        return sb.toString();
+        return scheduleWithDateList;
+    }
+
+    public int getIndexOfLastSpace(String s){
+        //В цикле находим индекс последнего пробела в строке
+        int index = 0;
+        for (int i = s.length()-1; i >= 0; i--) {
+            if (s.charAt(i) == ' ') {
+                index = i;
+                break;
+            }
+        }
+        return index;
     }
 }

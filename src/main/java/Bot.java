@@ -12,31 +12,36 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
 //    //TEST-BOT
 //    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
 //    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
-
     //    Константы
     public final String BOT_USERNAME = "@scheduleSPbU_bot";
     public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+    private LocalDate todayIs;
+    private String formattedTodayIs;
     //    id текущего чата
     private long chat_id;
     //хранит номер текущего дня
     private int day = 0;
+    private LocalDate currentDate;
     //    Клавиатуры
     private ArrayList keyboard = new ArrayList<>();
     private ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
     private InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
 
-    //Здесь хранится конечная ссылка на группу
-    private String finalURL;
     //      Адрес, динамически собирающийся
     private StringBuilder url = new StringBuilder();
     //    Объект расписания
     private Schedule schedule = new Schedule();
+    //Список с расписаниями на каждый день с привязкой к дате
+    private ArrayList<ScheduleWithDate> scheduleWithDateList = new ArrayList<>();
     //Список с программами подготовки
     private ArrayList<String> secondSpecs = new ArrayList<>();
     //Список с годами поступления
@@ -50,6 +55,10 @@ public class Bot extends TelegramLongPollingBot {
     //    Метод, выполняющийся при получении сообщений
     @Override
     public void onUpdateReceived(Update update) {
+        //Получаем текущую дату
+        todayIs = LocalDate.now();
+        formattedTodayIs = todayIs.format(DateTimeFormatter.ofPattern("dd MMMM"));
+
 //    ID написавшего пользователя
         update.getUpdateId();
         //Пришел текст, или была нажата кнопка?
@@ -84,16 +93,18 @@ public class Bot extends TelegramLongPollingBot {
 
     //Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
     public EditMessageText answerCallbackQuery(String response, Message message) {
-        String textSchedule;
-        if (response.equals("next")) day++;
-        if (response.equals("prev")) day--;
-        try { textSchedule = schedule.getSchedule(day); }
-        //Проверка переменной day на выход из интервала
-        //Пока ее инкременим/декрементим обратно
-        catch (IndexOutOfBoundsException e) {
-            if (response.equals("next")) day--;
-            if (response.equals("prev")) day++;
-            textSchedule = "Занятий не найдено";
+        String s = currentDate.getDayOfWeek()
+                .getDisplayName(TextStyle.FULL, new Locale("ru")) + ", "
+                + currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        String textSchedule = s + "\nЗанятий не найдено";
+        if (response.equals("next")) {
+            String date = incCurrentDate();
+            textSchedule = findScheduleAtDay(date);
+        }
+
+        if (response.equals("prev")) {
+            String date = decCurrentDate();
+            textSchedule = findScheduleAtDay(date);
         }
         setInlineKeyboard();
         return editTemplateMessage(textSchedule, message.getMessageId(), true);
@@ -116,7 +127,8 @@ public class Bot extends TelegramLongPollingBot {
                 groupLink.entrySet()) {
             if (msg.equals(entry.getKey())) {
                 if (checkURL()) {
-                    finalURL = schedule.baseURL + entry.getValue();
+                    //Здесь хранится конечная ссылка на группу
+                    String finalURL = schedule.baseURL + entry.getValue();
                     try {
                         schedule.connect(finalURL);
                     } catch (IOException e) {
@@ -124,8 +136,9 @@ public class Bot extends TelegramLongPollingBot {
                     }
 
                     setInlineKeyboard();
-                    //Тут сделать привязку ко дню
-                    return outTemplateMessage(schedule.getSchedule(day), true, false);
+
+                    String response = findScheduleAtDay(formattedTodayIs);
+                    return outTemplateMessage(response, true, false);
                 }
             }
         }
@@ -211,6 +224,8 @@ public class Bot extends TelegramLongPollingBot {
             clearURL();
             studyLevelsList.clear();
             currentStudyLevel = "";
+            currentDate = todayIs;
+
             try {
                 schedule.connect(schedule.baseURL);
             } catch (IOException e) {
@@ -243,6 +258,7 @@ public class Bot extends TelegramLongPollingBot {
             clearVars();
             clearURL();
             day = 0;
+            currentDate = todayIs;
 
             try {
                 schedule.connect(schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
@@ -250,8 +266,7 @@ public class Bot extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
 
-            //Тут поменять на нужный день
-            String textSchedule = schedule.getSchedule(day);
+            String textSchedule = findScheduleAtDay(formattedTodayIs);
 
             setInlineKeyboard();
             return outTemplateMessage(textSchedule, true, false);
@@ -398,6 +413,32 @@ public class Bot extends TelegramLongPollingBot {
         sm.setChatId(chat_id);
 
         return sm;
+    }
+
+    //Находит расписание в заданный день. Дата передается в формате "22 марта"
+    public String findScheduleAtDay(String date) {
+        scheduleWithDateList = schedule.getSchedule();
+
+        for (ScheduleWithDate sched :
+                scheduleWithDateList) {
+            if (sched.getDate().equals(date)) {
+                return sched.getText();
+            }
+        }
+        String s = currentDate.getDayOfWeek()
+                .getDisplayName(TextStyle.FULL, new Locale("ru"))
+                + ", " + currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        return s + "\nЗанятий не найдено";
+    }
+
+    public String incCurrentDate(){
+        currentDate = currentDate.plusDays(1);
+        return currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+    }
+
+    public String decCurrentDate(){
+        currentDate = currentDate.minusDays(1);
+        return currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
     }
 
     //Проверка на пустоту переменной url

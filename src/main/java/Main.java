@@ -1,11 +1,13 @@
 import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import java.util.Locale;
 
 public class Main {
 
     public static void main(String[] args) {
-        // write your code here
+        Locale.setDefault(new Locale("ru"));
+
         ApiContextInitializer.init();
         TelegramBotsApi telegram = new TelegramBotsApi();
 
