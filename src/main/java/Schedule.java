@@ -118,6 +118,8 @@ public class Schedule {
             stringDate = dayOfMonth + month;
 
             Elements subjects = element.select("ul li");
+            System.out.println(subjects.text());
+
             for (Element subject : subjects) {
 //                Получаем время
                 sb.append(subject.select(".studyevent-datetime").text()).append("\n");
@@ -125,6 +127,8 @@ public class Schedule {
                 sb.append("<b>").append(subject.select(".studyevent-subject").text()).append("</b>\n");
 //          Получаем место проведения занятия
                 String location = subject.select(".studyevent-locations").text();
+
+                System.out.println(subject.outerHtml());
 
                 //Находим индекс начала номера аудитории с конца
                 int beginIndex = getIndexOfLastSpace(location);
