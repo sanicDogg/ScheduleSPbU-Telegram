@@ -96,7 +96,7 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
-        System.out.println("AUU: " + System.getenv("DATABASE_URL"));
+        System.out.println("AUU: " + System.getenv("JDBC_DATABASE_URL"));
     }
 
     //Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
