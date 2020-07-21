@@ -152,8 +152,7 @@ public class Bot extends TelegramLongPollingBot {
                     this.user.group = msg;
                     String response = findScheduleAtDay(todayIs);
 
-                    return outTemplateMessage(response
-                            + "\nfinalURL: " + this.user.finalURL, true, false);
+                    return outTemplateMessage(response, true, false);
                 }
             }
         }
