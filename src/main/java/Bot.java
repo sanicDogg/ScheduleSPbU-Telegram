@@ -1,3 +1,4 @@
+import com.google.gson.Gson;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -5,72 +6,68 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.validation.constraints.Null;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class Bot extends TelegramLongPollingBot {
-    //TEST-BOT
-    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
-    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
+//    //TEST-BOT
+//    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
+//    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
 
-//    //    Константы
-//    public final String BOT_USERNAME = "@scheduleSPbU_bot";
-//    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+    //    Константы
+    public final String BOT_USERNAME = "@scheduleSPbU_bot";
+    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
 
+    // База данных, инициализируется в Main.java
+    private Database db = null;
+    public void setDb(Database db) {
+        this.db = db;
+    }
     private LocalDate todayIs;
-    private String formattedTodayIs;
+
     //    id текущего чата
     private long chat_id;
+    private long prevChat_id=0;
+    private String username;
+    // Объект расписания
+    public Schedule schedule = new Schedule();
+    // Список с годами поступления
+    public ArrayList<Element> years = new ArrayList<>();
 
-    private LocalDate currentDate;
-    //    Клавиатуры
-    private ArrayList keyboard = new ArrayList<>();
-    private ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
-    private InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+    // Текущий пользователь
+    private User user = null;
 
-    //      Адрес, динамически собирающийся
-    private StringBuilder url = new StringBuilder();
-    //    Объект расписания
-    private Schedule schedule = new Schedule();
-    //Список с расписаниями на каждый день с привязкой к дате
-    private ArrayList<ScheduleWithDate> scheduleWithDateList = new ArrayList<>();
-    //Список с программами подготовки
-    private ArrayList<String> secondSpecs = new ArrayList<>();
-    //Список с годами поступления
-    private ArrayList<Element> years = new ArrayList<>();
-    //Карта, хранящая пары "Группа - Ссылка"
-    private HashMap<String, String> groupLink = new HashMap<>();
-    //Список с уровнями обучения
-    private ArrayList<String> studyLevelsList = new ArrayList<>();
-    private String currentStudyLevel;
-
-    private boolean isFinalUrl;
-    private String finalURL;
-
-    //    Метод, выполняющийся при получении сообщений
+    // Метод, выполняющийся при получении сообщений
     @Override
     public void onUpdateReceived(Update update) {
-        //Получаем текущую дату
-        todayIs = LocalDate.now();
-        formattedTodayIs = todayIs.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        // Получаем текущую дату
+        this.todayIs = LocalDate.now();
 
 //    ID написавшего пользователя
         update.getUpdateId();
-        //Пришел текст, или была нажата кнопка?
+
+        // Пришел текст, или была нажата кнопка?
         if (update.hasMessage()) {
-            chat_id = update.getMessage().getChatId();
+            this.chat_id = update.getMessage().getChatId();
+            doDatabase(update);
+            if (this.prevChat_id != this.chat_id) initUserField();
             SendMessage sendMessage;
             sendMessage = getMessage(update.getMessage().getText());
-            sendMessage.setChatId(chat_id);
+            sendMessage.setChatId(this.chat_id);
+            updateDatabase();
+
             System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + "\n"
                     + update.getMessage().getFrom().getUserName() +
                     "\n с содержимым " + update.getMessage().getText());
@@ -80,10 +77,18 @@ public class Bot extends TelegramLongPollingBot {
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
+
         } else if (update.hasCallbackQuery()) {
             String response = update.getCallbackQuery().getData();
             Message message = update.getCallbackQuery().getMessage();
+            this.chat_id = message.getChatId();
+            this.username = "@" + update.getCallbackQuery().getFrom().getUserName() + " " +
+                    update.getCallbackQuery().getFrom().getFirstName() + " " +
+                    update.getCallbackQuery().getFrom().getLastName();
+
+            initUserField();
             EditMessageText answered = answerCallbackQuery(response, message);
+            updateDatabase();
 
             System.out.println("Пришел callbackQuery от пользователя " + message.getChatId() +
                     "\n сообщение " + message.getMessageId() +
@@ -95,86 +100,82 @@ public class Bot extends TelegramLongPollingBot {
                 e.printStackTrace();
             }
         }
-
-        System.out.println("AUU: " + System.getenv("JDBC_DATABASE_URL"));
+        this.prevChat_id = this.chat_id;
     }
 
-    //Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
+    // Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
     public EditMessageText answerCallbackQuery(String response, Message message) {
-        String s = currentDate.getDayOfWeek()
+        String s = this.user.currentDate.getDayOfWeek()
                 .getDisplayName(TextStyle.FULL, new Locale("ru")) + ", "
-                + currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+                + this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
         String textSchedule = s + "\nЗанятий не найдено";
         if (response.equals("next")) {
-            this.currentDate = this.currentDate.plusDays(1);
-            textSchedule = findScheduleAtDay(this.currentDate);
+            this.user.currentDate = this.user.currentDate.plusDays(1);
+            textSchedule = findScheduleAtDay(this.user.currentDate);
         }
 
         if (response.equals("prev")) {
-            this.currentDate = this.currentDate.minusDays(1);
-            textSchedule = findScheduleAtDay(currentDate);
+            this.user.currentDate = this.user.currentDate.minusDays(1);
+            textSchedule = findScheduleAtDay(this.user.currentDate);
         }
         setInlineKeyboard();
         return editTemplateMessage(textSchedule, message.getMessageId(), true);
     }
 
-
-    // Метод формирует ответ бота на сообщение пользователя
+//      Метод формирует ответ бота на сообщение пользователя
 //      Метод должен возвращать объект SendMessage с текстом
-//объект SendMessage создается методом getTemplateMessage()
-//    Значаение параметра text у метода отобразит бот
+//      объект SendMessage создается методом getTemplateMessage()
+//      Значаение параметра text у метода отобразит бот
+
     public SendMessage getMessage(String msg) {
-        replyKeyboardMarkup.setSelective(true);
-        replyKeyboardMarkup.setResizeKeyboard(true);
-        replyKeyboardMarkup.setOneTimeKeyboard(false);
+        this.user.replyKeyboardMarkup.setSelective(true);
+        this.user.replyKeyboardMarkup.setResizeKeyboard(true);
+        this.user.replyKeyboardMarkup.setOneTimeKeyboard(false);
         //specs хранит в себе все направления подгототвки(институты)
-        Elements specs = schedule.getInstitutes();
+        Elements specs = this.schedule.getInstitutes();
 
         //Если нажали на группу
         for (Map.Entry<String, String> entry :
-                groupLink.entrySet()) {
+                this.user.groupLink.entrySet()) {
             if (msg.equals(entry.getKey())) {
                 if (checkURL()) {
                     //Здесь хранится конечная ссылка на группу
-                    this.isFinalUrl = false;
-                    this.finalURL = schedule.baseURL + entry.getValue();
+                    this.user.isFinalUrl = false;
+                    this.user.finalURL = this.schedule.baseURL + entry.getValue();
                     try {
-                        schedule.connect(this.finalURL);
+                        this.schedule.connect(this.user.finalURL);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
 
                     setInlineKeyboard();
-
+                    this.user.group = msg;
                     String response = findScheduleAtDay(todayIs);
+
                     return outTemplateMessage(response
-                            + "\nfinalURL: " + finalURL, true, false);
+                            + "\nfinalURL: " + this.user.finalURL, true, false);
                 }
             }
         }
 
         //Если нажали на год поступления
         for (Element year :
-                years) {
+                this.years) {
             if (msg.equals(year.text())) {
                 if (checkURL()) {
-                    keyboard.clear();
+                    this.user.keyboard.clear();
                     //Очищаем переменную url и вставляем в нее новую ссылку
                     clearURL();
-                    url.append(year.select("a").attr("href"));
+                    this.user.url.append(year.select("a").attr("href"));
                     //Карта хранит пары "Группа - Ссылка"
-                    groupLink = schedule.getGroups(url.toString());
+                    this.user.groupLink = this.schedule.getGroups(this.user.url.toString());
 
-                    StringBuilder sb = new StringBuilder();
                     for (Map.Entry<String, String> entry :
-                            groupLink.entrySet()){
+                            this.user.groupLink.entrySet()){
                         //Клавиатура, отображающая группы из карты
                         KeyboardRow keyboardRow1 = new KeyboardRow();
                         keyboardRow1.add((String) entry.getKey());
-                        keyboard.add(keyboardRow1);
-
-                        sb.append(entry.getKey()).append("\n");
-                        sb.append(entry.getValue()).append("\n");
+                        this.user.keyboard.add(keyboardRow1);
                     }
 
                     return outTemplateMessage("Выберите группу", false, true);
@@ -184,18 +185,18 @@ public class Bot extends TelegramLongPollingBot {
 
         //Если нажали на программу подготовки
         for (String secondSpec :
-                secondSpecs) {
+                this.user.secondSpecs) {
             if (msg.equals(secondSpec)) {
-                return outYearOfStudy(secondSpec, currentStudyLevel);
+                return outYearOfStudy(secondSpec, this.user.currentStudyLevel);
             }
         }
 
         //Если нажали на магистратуру/бакалавриат и т.д.
         for (String s :
-                studyLevelsList) {
+                this.user.studyLevelsList) {
             if (msg.equals(s)) {
                 if (checkURL()) {
-                    currentStudyLevel = s;
+                    this.user.currentStudyLevel = s;
                     return outSecondSpec(s);
                 }
                 else return getErrorMessage();
@@ -209,20 +210,20 @@ public class Bot extends TelegramLongPollingBot {
                 specs) {
             if (msg.equals(e.text())) {
                 clearVars();
-                url.append(e.attr("href"));
+                this.user.url.append(e.attr("href"));
 
-                Elements studyLevels = schedule.getStudyLevels(url.toString());
+                Elements studyLevels = this.schedule.getStudyLevels(this.user.url.toString());
                 //Формируем клавиатуру
                 for (Element e1 :
                         studyLevels) {
                     KeyboardRow keyboardRow1 = new KeyboardRow();
                     keyboardRow1.add(e1.text());
-                    keyboard.add(keyboardRow1);
-                    studyLevelsList.add(e1.text());
+                    this.user.keyboard.add(keyboardRow1);
+                    this.user.studyLevelsList.add(e1.text());
                 }
-                replyKeyboardMarkup.setKeyboard(keyboard);
+                this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
 
-                return outTemplateMessage(e.text() + "\n" + url, false, true);
+                return outTemplateMessage(e.text() + "\n" + this.user.url, false, true);
             }
         }
 
@@ -231,16 +232,16 @@ public class Bot extends TelegramLongPollingBot {
             //Очищаем все переменные и подключаемся к корню сайта
             clearVars();
             clearURL();
-            studyLevelsList.clear();
-            currentStudyLevel = "";
-            currentDate = todayIs;
+            this.user.studyLevelsList.clear();
+            this.user.currentStudyLevel = "";
+            this.user.currentDate = todayIs;
 
             try {
-                schedule.connect(schedule.baseURL);
+                this.schedule.connect(this.schedule.baseURL);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            specs = schedule.getInstitutes();
+            specs = this.schedule.getInstitutes();
 
             //Формируем клавиатуру
             for (int i = 0; i < specs.size(); i=i+2) {
@@ -254,10 +255,10 @@ public class Bot extends TelegramLongPollingBot {
                 } catch (IndexOutOfBoundsException e) {
                     System.out.println("Количество меганаправлений нечетно");
                 }
-                keyboard.add(keyboardRow1);
+                this.user.keyboard.add(keyboardRow1);
             }
 
-            replyKeyboardMarkup.setKeyboard(keyboard);
+            this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
 
             return outTemplateMessage("Выберите направление", false, true);
         }
@@ -266,10 +267,10 @@ public class Bot extends TelegramLongPollingBot {
         if (msg.equals("/rasp") || msg.equals("р") || msg.equals("расписание") || msg.equals("r")) {
             clearVars();
             clearURL();
-            currentDate = todayIs;
+            this.user.currentDate = todayIs;
 
             try {
-                schedule.connect(schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
+                this.schedule.connect(this.schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -288,6 +289,52 @@ public class Bot extends TelegramLongPollingBot {
         return getErrorMessage();
     }
 
+    // Метод добавляет пользователя в базу, если его нет; обновляет базу, если
+    // пришел овтет от старого пользователя; начинает работать с другим пользователем,
+    // если ответ пришел от другого пользователя
+
+    public void doDatabase(Update update) {
+            this.username = "@" + update.getMessage().getFrom().getUserName() + " " +
+                    update.getMessage().getFrom().getFirstName() + " " +
+                    update.getMessage().getFrom().getLastName();
+            Gson gson = new Gson();
+
+            try {
+                // db.findUser returns list with username_tg and json
+                String user = db.findUser(this.chat_id).get(0);
+                String json = gson.toJson(this.user);
+                // Если пользователя еще нет в базе
+                if (user.equals("undefined")) {
+                    db.addUser(this.chat_id,
+                            this.username, "Unknown", json);
+                    // LOGS
+                    System.out.println("Added new user in database");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+    }
+
+    public void updateDatabase() {
+        Gson gson = new Gson();
+        String json = gson.toJson(this.user);
+        try {
+            db.editUser(this.chat_id, this.username, this.user.group, json);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void initUserField() {
+        try {
+            Gson gson = new Gson();
+
+            this.user = gson.fromJson(db.findUser(this.chat_id).get(1), User.class);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     // Отображение года поступления
     // Метод создаст клавиатуру с годами поступления по заданной программе подготовки
     // Метод похож на setSecondSpec()
@@ -297,7 +344,7 @@ public class Bot extends TelegramLongPollingBot {
         if (checkURL()) {
             clearVars();
 
-            Elements html = schedule.getSecondSpecs(url.toString(), studyLevel);
+            Elements html = this.schedule.getSecondSpecs(this.user.url.toString(), studyLevel);
             html = html.select("li");
             html.remove(0);
             KeyboardRow keyboardRow1 = new KeyboardRow();
@@ -316,12 +363,12 @@ public class Bot extends TelegramLongPollingBot {
                             divs) {
                         //Формируем клавиатуру с годами
                         keyboardRow1.add(e1.text());
-                        years.add(e1);
+                        this.years.add(e1);
                     }
                 }
             }
-            keyboard.add(keyboardRow1);
-            replyKeyboardMarkup.setKeyboard(keyboard);
+            this.user.keyboard.add(keyboardRow1);
+            this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
 
             return outTemplateMessage("Выберите год поступления", false, true);
         }
@@ -338,7 +385,7 @@ public class Bot extends TelegramLongPollingBot {
         if (checkURL()) {
             clearVars();
             //html - Полученный html-код, содержащий список ul с образовательными программами и годами поступления
-            Elements html = schedule.getSecondSpecs(url.toString(), studyLevel);
+            Elements html = this.schedule.getSecondSpecs(this.user.url.toString(), studyLevel);
             html = html.select("li");
             html.remove(0);
 
@@ -347,13 +394,13 @@ public class Bot extends TelegramLongPollingBot {
                 e = e.selectFirst("div");
                 KeyboardRow keyboardRow1 = new KeyboardRow();
                 keyboardRow1.add(e.text());
-                keyboard.add(keyboardRow1);
+                this.user.keyboard.add(keyboardRow1);
 
                 //Добавляем программу подготовки в глобальный список
-                secondSpecs.add(e.text());
+                this.user.secondSpecs.add(e.text());
             }
 
-            replyKeyboardMarkup.setKeyboard(keyboard);
+            this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
 
             return outTemplateMessage("Выберите программу подготовки", false, true);
         } else return getErrorMessage();
@@ -374,7 +421,7 @@ public class Bot extends TelegramLongPollingBot {
         keyboardButtonsRow1.add(btn2);
         List<List<InlineKeyboardButton>> rowList = new ArrayList<>();
         rowList.add(keyboardButtonsRow1);
-        inlineKeyboardMarkup.setKeyboard(rowList);
+        this.user.inlineKeyboardMarkup.setKeyboard(rowList);
     }
 
     //Функция нужна для генерации стандартного объекта EditMessageText с клавиатурой inline
@@ -383,9 +430,9 @@ public class Bot extends TelegramLongPollingBot {
         EditMessageText emt = new EditMessageText();
         emt.setText(text);
         emt.setParseMode("HTML");
-        emt.setChatId(chat_id);
+        emt.setChatId(this.chat_id);
         emt.setMessageId(messageId);
-        if (needInlineKeyboard) emt.setReplyMarkup(inlineKeyboardMarkup);
+        if (needInlineKeyboard) emt.setReplyMarkup(this.user.inlineKeyboardMarkup);
 
         return emt;
     }
@@ -408,8 +455,8 @@ public class Bot extends TelegramLongPollingBot {
         sm.setChatId(chat_id);
         sm.setParseMode("HTML");
         if (!(needInlineKeyboard && needReplyKeyboard)) {
-            if (needInlineKeyboard) sm.setReplyMarkup(inlineKeyboardMarkup);
-            if (needReplyKeyboard) sm.setReplyMarkup(replyKeyboardMarkup);
+            if (needInlineKeyboard) sm.setReplyMarkup(this.user.inlineKeyboardMarkup);
+            if (needReplyKeyboard) sm.setReplyMarkup(this.user.replyKeyboardMarkup);
         }
         return sm;
     }
@@ -444,56 +491,58 @@ public class Bot extends TelegramLongPollingBot {
 
         // Подключаемся по новому URL
 
-        if (this.isFinalUrl) {
+        if (this.user.isFinalUrl) {
             // Обрезаем последние 10 символов с датой
-            this.finalURL = this.finalURL.substring(0, this.finalURL.length() - 11);
+            this.user.finalURL = this.user.finalURL.substring(0, this.user.finalURL.length() - 11);
             // Добавляем новую дату
-            this.finalURL = this.finalURL + "/" + strDate;
+            this.user.finalURL = this.user.finalURL + "/" + strDate;
         }
 
         else {
-            this.finalURL = this.finalURL + "/" + strDate;
-            this.isFinalUrl = true;
+            this.user.finalURL = this.user.finalURL + "/" + strDate;
+            this.user.isFinalUrl = true;
         }
 
         try {
-            schedule.connect(finalURL);
+            this.schedule.connect(this.user.finalURL);
         } catch (IOException e) {
             System.out.println("IOException при попытке найти расписание по дате");
             e.printStackTrace();
         }
 
-        this.scheduleWithDateList = schedule.getSchedule();
-        strDate = currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        this.user.scheduleWithDateList = this.schedule.getSchedule();
+        strDate = this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
 
-        for (ScheduleWithDate sched :
-                this.scheduleWithDateList) {
-            if (sched.getDate().equals(strDate)) {
-                return sched.getText();
+            for (ScheduleWithDate sched :
+                    this.user.scheduleWithDateList) {
+                if (sched.getDate().equals(strDate)) {
+                return this.user.group + "\n" + sched.getDate() + "\n" + sched.getText();
             }
         }
-        String s = this.currentDate.getDayOfWeek()
+        String s = this.user.group + "\n" + this.user.currentDate.getDayOfWeek()
                 .getDisplayName(TextStyle.FULL, new Locale("ru"))
-                + ", " + this.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+                + ", " + this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
         return s + "\nЗанятий не найдено";
     }
 
     //Проверка на пустоту переменной url
     public Boolean checkURL() {
-        return !(url.toString().equals(schedule.baseURL)) && !url.toString().isEmpty();
+        return !(this.user.url.toString().equals(this.schedule.baseURL))
+                && !this.user.url.toString().isEmpty();
     }
 
     //Очистка переменных
     public void clearVars() {
-        keyboard.clear();
-        secondSpecs.clear();
-        years.clear();
-        groupLink.clear();
+        this.user.keyboard.clear();
+        this.user.secondSpecs.clear();
+        this.years.clear();
+        this.user.groupLink.clear();
+        this.user.group = "";
     }
 
     public void clearURL() {
-        url.setLength(0);
-        url.append(schedule.baseURL);
+        this.user.url.setLength(0);
+        this.user.url.append(this.schedule.baseURL);
     }
 
     @Override

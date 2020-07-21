@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Schedule {
-    private Document document;
+    public Document document;
     public final String baseURL = "https://timetable.spbu.ru";
 
     public Schedule() {
@@ -83,7 +83,7 @@ public class Schedule {
             e.printStackTrace();
         }
 
-        HashMap<String, String> result = new HashMap();
+        HashMap<String, String> result = new HashMap<>();
         Elements list = document.select("#studentGroupsForCurrentYear li");
 
         for (Element e :
