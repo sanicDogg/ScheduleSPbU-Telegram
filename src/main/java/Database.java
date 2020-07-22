@@ -21,14 +21,17 @@ public class Database {
     }
 
     private Connection getConnection() throws URISyntaxException, SQLException {
-        URI dbUri = new URI(this.DATABASE_URL);
+//        URI dbUri = new URI(this.DATABASE_URL);
+//
+//        String username = "bhxeblxhldvnoy";
+//        String password = "78a34cb6e88887224cc87ee191023728f6e3ba70272de90e4550025a247c78ec";
+//
+//        String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
+//
+//        return DriverManager.getConnection(dbUrl, username, password);
 
-        String username = "bhxeblxhldvnoy";
-        String password = "78a34cb6e88887224cc87ee191023728f6e3ba70272de90e4550025a247c78ec";
-
-        String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
-
-        return DriverManager.getConnection(dbUrl, username, password);
+            String dbUrl = System.getenv("JDBC_DATABASE_URL");
+            return DriverManager.getConnection(dbUrl);
     }
 
     // Выполнить SQL-запрос
