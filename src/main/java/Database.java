@@ -1,7 +1,5 @@
 import org.postgresql.util.PSQLException;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -14,8 +12,8 @@ public class Database {
     }
 
     private Connection getConnection() throws SQLException {
-            String dbUrl = System.getenv("JDBC_DATABASE_URL");
-            return DriverManager.getConnection(dbUrl);
+        String dbUrl = System.getenv("JDBC_DATABASE_URL");
+        return DriverManager.getConnection(dbUrl);
     }
 
     // Выполнить SQL-запрос

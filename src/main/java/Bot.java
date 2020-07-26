@@ -10,7 +10,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import javax.validation.constraints.Null;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -22,12 +21,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public class Bot extends TelegramLongPollingBot {
-//    //TEST-BOT
-//    public final String BOT_USERNAME = "@scheduleSPbU_test_bot";
-//    public final String BOT_TOKEN = "1096924723:AAHGxadgGu2jsh1y54cli5LED1bGoVwvfl8";
-
     //    Константы
-    public final String BOT_USERNAME = "@scheduleSPbU_bot";
+    public final String BOT_USERNAME = System.getenv("BOT_USERNAME");
     public final String BOT_TOKEN = System.getenv("BOT_TOKEN");
 
     // База данных, инициализируется в Main.java
@@ -103,12 +98,15 @@ public class Bot extends TelegramLongPollingBot {
         this.prevChat_id = this.chat_id;
     }
 
+    public String getFormattedDate(LocalDate date) {
+        return date.getDayOfWeek()
+                .getDisplayName(TextStyle.FULL, new Locale("ru")) + ", "
+                + this.user.currentDate.format(DateTimeFormatter.ofPattern("d MMMM"));
+    }
+
     // Метод, обрабатывающий нажатия кнопок на inline-клавиатуре
     public EditMessageText answerCallbackQuery(String response, Message message) {
-        String s = this.user.currentDate.getDayOfWeek()
-                .getDisplayName(TextStyle.FULL, new Locale("ru")) + ", "
-                + this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
-        String textSchedule = s + "\nЗанятий не найдено";
+        String textSchedule = getFormattedDate(this.user.currentDate) + "\nЗанятий не найдено";
         if (response.equals("next")) {
             this.user.currentDate = this.user.currentDate.plusDays(1);
             textSchedule = findScheduleAtDay(this.user.currentDate);
@@ -267,6 +265,7 @@ public class Bot extends TelegramLongPollingBot {
             clearVars();
             clearURL();
             this.user.currentDate = todayIs;
+            this.user.group = "19.Б10-вшж";
 
             try {
                 this.schedule.connect(this.schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
@@ -471,19 +470,11 @@ public class Bot extends TelegramLongPollingBot {
 
     //Находит расписание в заданный день. Дата передается в формате "22 марта"
     public String findScheduleAtDay(LocalDate date) {
-        // День недели числом
+        // День недели
         int dayOfWeek = date.getDayOfWeek().getValue();
-        // В date теперь понедельник нужной недели
+        // Теперь в date понедельник нужной недели
         date = date.minusDays(dayOfWeek - 1);
-        // Нужная дата для генерации правильной ссылки
-        String strDate = date.getYear() + "-";
-        // Дописываем нули, если числа месяца и дня меньше 10
-        if (date.getMonthValue() < 10)
-            strDate += "0";
-        strDate += date.getMonthValue() + "-";
-        if (date.getDayOfMonth() < 10)
-            strDate += "0";
-        strDate += date.getDayOfMonth();
+        String strDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
         // DEBUG
         System.out.println("strDate: " + "\t" + strDate);
@@ -510,17 +501,15 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         this.user.scheduleWithDateList = this.schedule.getSchedule();
-        strDate = this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        strDate = this.user.currentDate.format(DateTimeFormatter.ofPattern("d MMMM"));
 
             for (ScheduleWithDate sched :
                     this.user.scheduleWithDateList) {
                 if (sched.getDate().equals(strDate)) {
-                return this.user.group + "\n" + sched.getDate() + "\n" + sched.getText();
+                return this.user.group + "\n" + sched.getText();
             }
         }
-        String s = this.user.group + "\n" + this.user.currentDate.getDayOfWeek()
-                .getDisplayName(TextStyle.FULL, new Locale("ru"))
-                + ", " + this.user.currentDate.format(DateTimeFormatter.ofPattern("dd MMMM"));
+        String s = this.user.group + "\n" + getFormattedDate(this.user.currentDate);
         return s + "\nЗанятий не найдено";
     }
 
