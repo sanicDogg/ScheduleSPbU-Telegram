@@ -28,7 +28,7 @@ public class Bot extends TelegramLongPollingBot {
 
     //    Константы
     public final String BOT_USERNAME = "@scheduleSPbU_bot";
-    public final String BOT_TOKEN = "1065822779:AAEq-5nqUR_g8P4UeVHQMo0lu8BkmvQZ-MI";
+    public final String BOT_TOKEN = System.getenv("BOT_TOKEN");
 
     // База данных, инициализируется в Main.java
     private Database db = null;

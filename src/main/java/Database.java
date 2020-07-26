@@ -6,30 +6,14 @@ import java.sql.*;
 import java.util.ArrayList;
 
 public class Database {
-    private final String DATABASE_URL;
     private Connection connection;
     private String table = "users";
 
-    public Database(String url) throws URISyntaxException, SQLException {
-        this.DATABASE_URL = url;
+    public Database() throws SQLException {
         this.connection = getConnection();
     }
 
-    public Database() throws URISyntaxException, SQLException {
-        this.DATABASE_URL = "postgres://bhxeblxhldvnoy:78a34cb6e88887224cc87ee191023728f6e3ba70272de90e4550025a247c78ec@ec2-18-203-62-227.eu-west-1.compute.amazonaws.com:5432/d4qcqsv0ujkg35";
-        this.connection = getConnection();
-    }
-
-    private Connection getConnection() throws URISyntaxException, SQLException {
-//        URI dbUri = new URI(this.DATABASE_URL);
-//
-//        String username = "bhxeblxhldvnoy";
-//        String password = "78a34cb6e88887224cc87ee191023728f6e3ba70272de90e4550025a247c78ec";
-//
-//        String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
-//
-//        return DriverManager.getConnection(dbUrl, username, password);
-
+    private Connection getConnection() throws SQLException {
             String dbUrl = System.getenv("JDBC_DATABASE_URL");
             return DriverManager.getConnection(dbUrl);
     }
