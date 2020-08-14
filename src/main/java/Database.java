@@ -1,19 +1,21 @@
 import org.postgresql.util.PSQLException;
 
+import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Database {
     private Connection connection;
     private String table = "users";
 
-    public Database() throws SQLException {
+    public Database() throws SQLException, URISyntaxException {
         this.connection = getConnection();
     }
 
-    private Connection getConnection() throws SQLException {
-        String dbUrl = System.getenv("JDBC_DATABASE_URL");
-        return DriverManager.getConnection(dbUrl);
+    private Connection getConnection() throws SQLException, URISyntaxException {
+        String dbURL = System.getenv("JDBC_DATABASE_URL");
+        return DriverManager.getConnection(dbURL);
     }
 
     // Выполнить SQL-запрос
@@ -22,6 +24,7 @@ public class Database {
         // Для Insert, Update, Delete
         return statement.executeUpdate(query);
     }
+
     // Добавить пользователя в таблицу
     public int addUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
         String query = "INSERT INTO " + this.table + " (username_tg, \"group\", chat_id, \"user.class\") " +
@@ -44,6 +47,7 @@ public class Database {
         String query = "SELECT * FROM " + this.table + " WHERE chat_id = " + chat_id;
         PreparedStatement statement = this.connection.prepareStatement(query);
         boolean hasResult = statement.execute();
+
         ArrayList<String> chatJSON = new ArrayList<>();
         // space is nothing... //
         String username = "space";
@@ -63,5 +67,30 @@ public class Database {
         chatJSON.add(username);
         chatJSON.add(json);
         return chatJSON;
+    }
+
+    public HashMap<Long, String> getAllUsers() throws SQLException {
+        HashMap<Long, String> users = new HashMap<>();
+
+        String query = "SELECT * FROM " + this.table;
+        PreparedStatement statement = this.connection.prepareStatement(query);
+        boolean hasResult = statement.execute();
+
+        if (hasResult) {
+            ResultSet resultSet = statement.getResultSet();
+            while (true) {
+                resultSet.next();
+                try {
+                    long chat_id = resultSet.getLong("chat_id");
+                    String json = resultSet.getString("user.class");
+
+                    users.put(chat_id, json);
+                } catch (PSQLException e) {
+                    break;
+                }
+            }
+        }
+
+        return users;
     }
 }

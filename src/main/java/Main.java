@@ -16,6 +16,7 @@ public class Main {
 
         Bot bot = new Bot();
         bot.setDb(new Database());
+        bot.checkTime();
 
         try {
             telegram.registerBot(bot);

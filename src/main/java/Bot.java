@@ -12,13 +12,13 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
     //    Константы
@@ -30,7 +30,7 @@ public class Bot extends TelegramLongPollingBot {
     public void setDb(Database db) {
         this.db = db;
     }
-    private LocalDate todayIs;
+    private LocalDate todayIs = LocalDate.now();
 
     //    id текущего чата
     private long chat_id;
@@ -287,7 +287,7 @@ public class Bot extends TelegramLongPollingBot {
         return getErrorMessage();
     }
 
-    // Метод добавляет пользователя в базу, если его нет; обновляет базу, если
+    // Метод (3 метода) добавляет пользователя в базу, если его нет; обновляет базу, если
     // пришел овтет от старого пользователя; начинает работать с другим пользователем,
     // если ответ пришел от другого пользователя
 
@@ -306,7 +306,7 @@ public class Bot extends TelegramLongPollingBot {
                     db.addUser(this.chat_id,
                             this.username, "Unknown", json);
                     // LOGS
-                    System.out.println("Added new user in database");
+                    System.out.println("New user has been added to a database");
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -331,6 +331,16 @@ public class Bot extends TelegramLongPollingBot {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    /*
+        Методу требуется json класса user, json берется из базы
+    */
+
+    public void initUserField(String json) {
+        Gson gson = new Gson();
+
+        this.user = gson.fromJson(json, User.class);
     }
 
     // Отображение года поступления
@@ -476,9 +486,6 @@ public class Bot extends TelegramLongPollingBot {
         date = date.minusDays(dayOfWeek - 1);
         String strDate = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-        // DEBUG
-        System.out.println("strDate: " + "\t" + strDate);
-
         // Подключаемся по новому URL
 
         if (this.user.isFinalUrl) {
@@ -511,6 +518,68 @@ public class Bot extends TelegramLongPollingBot {
         }
         String s = this.user.group + "\n" + getFormattedDate(this.user.currentDate);
         return s + "\nЗанятий не найдено";
+    }
+
+    /*
+        Метод проверяет время каждую минуту, в 18 часов по Москве вызывается метод
+        sendScheduleToAllUsers, который отправляет всем пользователям расписание
+     */
+    public void checkTime() {
+        Thread run = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    try {
+                        Instant instant = Instant.now();
+                        ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
+                        if (zdt.getHour() == 18 && zdt.getMinute() == 0) sendScheduleToAllUsers();
+                        Thread.sleep(60 * 1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+        run.start();
+    }
+
+    private void sendScheduleToAllUsers() {
+        HashMap<Long, String> users = new HashMap<>();
+        try {
+            users = db.getAllUsers();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        for (Map.Entry<Long, String> entry: users.entrySet()) {
+            long chat_id = entry.getKey();
+            String json = entry.getValue();
+
+            this.chat_id = chat_id;
+            initUserField(json);
+            this.user.currentDate = this.todayIs.plusDays(1);
+            if (!this.user.group.equals("")) {
+                String textSchedule = findScheduleAtDay(this.user.currentDate);
+                if (!textSchedule.contains("Занятий не найдено")) {
+                    SendMessage sm = outTemplateMessage(textSchedule, true, false);
+                    sendMessageToCurrentUser(sm);
+
+                    System.out.println("Message has been sent to user " + this.chat_id);
+                }
+            }
+        }
+    }
+
+    /*
+        Отправляет месседж текущему chat_id
+    */
+
+    public void sendMessageToCurrentUser(SendMessage sm) {
+        try {
+            execute(sm);
+        } catch (TelegramApiException e){
+            e.printStackTrace();
+        }
     }
 
     //Проверка на пустоту переменной url
