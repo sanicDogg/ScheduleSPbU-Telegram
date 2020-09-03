@@ -535,7 +535,7 @@ public class Bot extends TelegramLongPollingBot {
                         //if (zdt.getHour() == 18 && zdt.getMinute() == 0)
                             sendScheduleToAllUsers();
                         Thread.sleep(60 * 1000);
-                    } catch (InterruptedException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
