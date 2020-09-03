@@ -1,5 +1,6 @@
 import org.postgresql.util.PSQLException;
 
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
 import java.util.ArrayList;

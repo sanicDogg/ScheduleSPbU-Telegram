@@ -532,7 +532,8 @@ public class Bot extends TelegramLongPollingBot {
                     try {
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
-                        if (zdt.getHour() == 18 && zdt.getMinute() == 0) sendScheduleToAllUsers();
+                        //if (zdt.getHour() == 18 && zdt.getMinute() == 0)
+                            sendScheduleToAllUsers();
                         Thread.sleep(60 * 1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
