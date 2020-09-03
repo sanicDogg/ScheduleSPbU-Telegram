@@ -533,7 +533,7 @@ public class Bot extends TelegramLongPollingBot {
                         Thread.sleep(60 * 1000);
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
-                        //if ((zdt.getHour() == 18 && zdt.getMinute() == 0))
+                        if ((zdt.getHour() == 18 && zdt.getMinute() == 0))
                             sendScheduleToAllUsers();
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -555,8 +555,8 @@ public class Bot extends TelegramLongPollingBot {
         for (Map.Entry<Long, String> entry: users.entrySet()) {
             long chat_id = entry.getKey();
             String json = entry.getValue();
-            System.out.println("Trying to send message...");
-            System.out.println("USER: " + chat_id);
+            /* DEBUG */
+            System.out.println("Trying to send message... " + "USER: " + chat_id);
 
             this.chat_id = chat_id;
             initUserField(json);
