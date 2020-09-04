@@ -578,6 +578,11 @@ public class Bot extends TelegramLongPollingBot {
                     System.out.println("Message has been sent to user " + this.chat_id);
                 }
             }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
