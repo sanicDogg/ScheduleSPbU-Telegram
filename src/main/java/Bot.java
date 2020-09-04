@@ -44,6 +44,9 @@ public class Bot extends TelegramLongPollingBot {
     // Текущий пользователь
     private User user = null;
 
+    /* DEBUG */
+    private boolean ifJustStarted = true;
+
     // Метод, выполняющийся при получении сообщений
     @Override
     public void onUpdateReceived(Update update) {
@@ -533,6 +536,11 @@ public class Bot extends TelegramLongPollingBot {
                         Thread.sleep(60 * 1000);
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
+                        if (ifJustStarted) {
+                            sendScheduleToAllUsers();
+                            ifJustStarted = false;
+                        };
+
                         if ((zdt.getHour() == 18 && zdt.getMinute() == 0))
                             sendScheduleToAllUsers();
                     } catch (Exception e) {
