@@ -571,17 +571,21 @@ public class Bot extends TelegramLongPollingBot {
             this.chat_id = chat_id;
             initUserField(json);
 
-            if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
-                this.user.currentDate = this.todayIs.plusDays(1);
-                String textSchedule = findScheduleAtDay(this.user.currentDate);
-                if (!textSchedule.contains("Занятий не найдено")) {
-                    SendMessage sm = outTemplateMessage(textSchedule, true, false);
-                    sendMessageToCurrentUser(sm);
+            try {
+                if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
+                    this.user.currentDate = this.todayIs.plusDays(1);
+                    String textSchedule = findScheduleAtDay(this.user.currentDate);
+                    if (!textSchedule.contains("Занятий не найдено")) {
+                        SendMessage sm = outTemplateMessage(textSchedule, true, false);
+                        sendMessageToCurrentUser(sm);
 
-                    System.out.println("Message has been sent to user " + this.chat_id);
+                        System.out.println("Message has been sent to user " + this.chat_id);
+                    }
+                } else {
+                    System.out.println("Message has not been sent to user " + chat_id);
                 }
-            } else {
-                System.out.println("Message has not been sent to user " + chat_id);
+            } catch (NullPointerException e) {
+                System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
             }
             try {
                 Thread.sleep(200);
