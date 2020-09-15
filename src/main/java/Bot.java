@@ -533,11 +533,12 @@ public class Bot extends TelegramLongPollingBot {
             public void run() {
                 while(true){
                     try {
-                        /* DEBUG */
+                        /* DEBUG
                         if (ifJustStarted) {
                             sendScheduleToAllUsers();
                             ifJustStarted = false;
                         };
+                        */
 
                         Thread.sleep(60 * 1000);
                         Instant instant = Instant.now();
