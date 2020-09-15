@@ -571,7 +571,7 @@ public class Bot extends TelegramLongPollingBot {
             this.chat_id = chat_id;
             initUserField(json);
             this.user.currentDate = this.todayIs.plusDays(1);
-            if (!this.user.group.equals("")) {
+            if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
                 String textSchedule = findScheduleAtDay(this.user.currentDate);
                 if (!textSchedule.contains("Занятий не найдено")) {
                     SendMessage sm = outTemplateMessage(textSchedule, true, false);
