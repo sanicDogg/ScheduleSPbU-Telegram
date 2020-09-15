@@ -586,6 +586,7 @@ public class Bot extends TelegramLongPollingBot {
                 }
             } catch (NullPointerException e) {
                 System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
+                continue;
             }
             try {
                 Thread.sleep(200);
