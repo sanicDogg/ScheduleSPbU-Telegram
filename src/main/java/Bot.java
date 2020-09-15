@@ -533,15 +533,15 @@ public class Bot extends TelegramLongPollingBot {
             public void run() {
                 while(true){
                     try {
-                        Thread.sleep(60 * 1000);
-                        Instant instant = Instant.now();
-                        ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
                         /* DEBUG */
                         if (ifJustStarted) {
                             sendScheduleToAllUsers();
                             ifJustStarted = false;
                         };
 
+                        Thread.sleep(60 * 1000);
+                        Instant instant = Instant.now();
+                        ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
 
                         if ((zdt.getHour() == 18 && zdt.getMinute() == 0))
                             sendScheduleToAllUsers();
@@ -568,9 +568,10 @@ public class Bot extends TelegramLongPollingBot {
             /* DEBUG */
             System.out.println("Trying to send message... " + "USER: " + chat_id);
 
+            this.chat_id = chat_id;
+            initUserField(json);
+
             if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
-                this.chat_id = chat_id;
-                initUserField(json);
                 this.user.currentDate = this.todayIs.plusDays(1);
                 String textSchedule = findScheduleAtDay(this.user.currentDate);
                 if (!textSchedule.contains("Занятий не найдено")) {
