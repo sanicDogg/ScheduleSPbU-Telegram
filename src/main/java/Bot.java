@@ -227,6 +227,10 @@ public class Bot extends TelegramLongPollingBot {
             }
         }
 
+        if (msg.equals("/sschtau")) {
+            sendScheduleToAllUsers();
+        }
+
         //Команда "/start"
         if (msg.equals("/start")) {
             //Очищаем все переменные и подключаемся к корню сайта
