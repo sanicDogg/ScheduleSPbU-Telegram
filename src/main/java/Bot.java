@@ -1,4 +1,5 @@
 import com.google.gson.Gson;
+import jdk.vm.ci.meta.Local;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -545,6 +546,7 @@ public class Bot extends TelegramLongPollingBot {
                         */
 
                         Thread.sleep(60 * 1000);
+                        todayIs = LocalDate.now();
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
 
@@ -593,6 +595,7 @@ public class Bot extends TelegramLongPollingBot {
                 System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
                 continue;
             }
+            updateDatabase();
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
