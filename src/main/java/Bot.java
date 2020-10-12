@@ -1,4 +1,5 @@
 import com.google.gson.Gson;
+import jdk.vm.ci.meta.Local;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -43,6 +44,9 @@ public class Bot extends TelegramLongPollingBot {
 
     // Текущий пользователь
     private User user = null;
+
+    /* DEBUG */
+    private boolean ifJustStarted = true;
 
     // Метод, выполняющийся при получении сообщений
     @Override
@@ -222,6 +226,10 @@ public class Bot extends TelegramLongPollingBot {
 
                 return outTemplateMessage(e.text() + "\n" + this.user.url, false, true);
             }
+        }
+
+        if (msg.equals("/sschtau")) {
+            sendScheduleToAllUsers();
         }
 
         //Команда "/start"
@@ -530,11 +538,21 @@ public class Bot extends TelegramLongPollingBot {
             public void run() {
                 while(true){
                     try {
+                        /* DEBUG
+                        if (ifJustStarted) {
+                            sendScheduleToAllUsers();
+                            ifJustStarted = false;
+                        };
+                        */
+
+                        Thread.sleep(60 * 1000);
+                        todayIs = LocalDate.now();
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
-                        if (zdt.getHour() == 18 && zdt.getMinute() == 0) sendScheduleToAllUsers();
-                        Thread.sleep(60 * 1000);
-                    } catch (InterruptedException e) {
+
+                        if ((zdt.getHour() == 18 && zdt.getMinute() == 0))
+                            sendScheduleToAllUsers();
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -554,18 +572,34 @@ public class Bot extends TelegramLongPollingBot {
         for (Map.Entry<Long, String> entry: users.entrySet()) {
             long chat_id = entry.getKey();
             String json = entry.getValue();
+            /* DEBUG */
+            System.out.println("Trying to send message... " + "USER: " + chat_id);
 
             this.chat_id = chat_id;
             initUserField(json);
-            this.user.currentDate = this.todayIs.plusDays(1);
-            if (!this.user.group.equals("")) {
-                String textSchedule = findScheduleAtDay(this.user.currentDate);
-                if (!textSchedule.contains("Занятий не найдено")) {
-                    SendMessage sm = outTemplateMessage(textSchedule, true, false);
-                    sendMessageToCurrentUser(sm);
 
-                    System.out.println("Message has been sent to user " + this.chat_id);
+            try {
+                if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
+                    this.user.currentDate = this.todayIs.plusDays(1);
+                    String textSchedule = findScheduleAtDay(this.user.currentDate);
+                    if (!textSchedule.contains("Занятий не найдено")) {
+                        SendMessage sm = outTemplateMessage(textSchedule, true, false);
+                        sendMessageToCurrentUser(sm);
+
+                        System.out.println("Message has been sent to user " + this.chat_id);
+                    }
+                } else {
+                    System.out.println("Message has not been sent to user " + chat_id);
                 }
+            } catch (NullPointerException e) {
+                System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
+                continue;
+            }
+            updateDatabase();
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
