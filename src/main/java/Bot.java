@@ -30,7 +30,7 @@ public class Bot extends TelegramLongPollingBot {
     public void setDb(Database db) {
         this.db = db;
     }
-    private LocalDate todayIs = LocalDate.now();
+    private LocalDate todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
     //    id текущего чата
     private long chat_id;
@@ -51,7 +51,7 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         // Получаем текущую дату
-        this.todayIs = LocalDate.now();
+        this.todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
 //    ID написавшего пользователя
         update.getUpdateId();
@@ -545,7 +545,7 @@ public class Bot extends TelegramLongPollingBot {
                         */
 
                         Thread.sleep(60 * 1000);
-                        todayIs = LocalDate.now();
+                        todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
                         Instant instant = Instant.now();
                         ZonedDateTime zdt = instant.atZone(ZoneId.of("Europe/Moscow"));
 
@@ -594,7 +594,7 @@ public class Bot extends TelegramLongPollingBot {
                 System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
                 continue;
             }
-            updateDatabase();
+
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
