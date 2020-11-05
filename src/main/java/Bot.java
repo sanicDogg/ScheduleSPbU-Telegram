@@ -149,11 +149,11 @@ public class Bot extends TelegramLongPollingBot {
                         e.printStackTrace();
                     }
 
-                    setInlineKeyboard();
+                    setReplyKeyBoardTodayTomorrow();
                     this.user.group = msg;
                     String response = findScheduleAtDay(todayIs);
 
-                    return outTemplateMessage(response, true, false);
+                    return outTemplateMessage(response, false, true);
                 }
             }
         }
@@ -174,7 +174,7 @@ public class Bot extends TelegramLongPollingBot {
                             this.user.groupLink.entrySet()){
                         //Клавиатура, отображающая группы из карты
                         KeyboardRow keyboardRow1 = new KeyboardRow();
-                        keyboardRow1.add((String) entry.getKey());
+                        keyboardRow1.add(entry.getKey());
                         this.user.keyboard.add(keyboardRow1);
                     }
 
@@ -213,6 +213,8 @@ public class Bot extends TelegramLongPollingBot {
                 this.user.url.append(e.attr("href"));
 
                 Elements studyLevels = this.schedule.getStudyLevels(this.user.url.toString());
+                studyLevels.remove(0);
+                studyLevels.remove(0);
                 //Формируем клавиатуру
                 for (Element e1 :
                         studyLevels) {
@@ -229,6 +231,24 @@ public class Bot extends TelegramLongPollingBot {
 
         if (msg.equals("/sschtau")) {
             sendScheduleToAllUsers();
+        }
+
+        if (msg.equals("Сегодня")) {
+            this.user.currentDate = todayIs;
+            String response = findScheduleAtDay(todayIs);
+            updateDatabase();
+            return outTemplateMessage(response, true, false);
+        }
+
+        if (msg.equals("Завтра")) {
+            this.user.currentDate = todayIs.plusDays(1);
+            String response = findScheduleAtDay(this.user.currentDate);
+            updateDatabase();
+            return outTemplateMessage(response, true, false);
+        }
+
+        if (msg.equals("Выбрать другую группу")) {
+            return outTemplateMessage("Чтобы выбрать другую группу, отправьте /start");
         }
 
         //Команда "/start"
@@ -288,7 +308,8 @@ public class Bot extends TelegramLongPollingBot {
 
         //Команда "/help"
         if (msg.equals("/help")) {
-            return outTemplateMessage("Если вы выбрали не подходящую\nгруппу, попробуйте заново\n/start");
+            return outTemplateMessage("Если вы выбрали не подходящую\nгруппу, попробуйте заново\n/start" +
+                    "\nПо всем вопросам писать @sanicDogg");
         }
 
         return getErrorMessage();
@@ -425,6 +446,17 @@ public class Bot extends TelegramLongPollingBot {
         return outTemplateMessage("Ошибка, попробуйте /start");
     }
 
+    public void setReplyKeyBoardTodayTomorrow() {
+        this.user.keyboard.clear();
+        KeyboardRow row1 = new KeyboardRow();
+        KeyboardRow row2 = new KeyboardRow();
+        row1.add("Сегодня");
+        row1.add("Завтра");
+        this.user.keyboard.add(row1);
+        row2.add("Выбрать другую группу");
+        this.user.keyboard.add(row2);
+    }
+
     public void setInlineKeyboard() {
         //Здесь другой способ создания макета кливиатуры, но суть та же
         InlineKeyboardButton btn1 = new InlineKeyboardButton("Предыдущий день");
@@ -531,6 +563,7 @@ public class Bot extends TelegramLongPollingBot {
         Метод проверяет время каждую минуту, в 18 часов по Москве вызывается метод
         sendScheduleToAllUsers, который отправляет всем пользователям расписание
      */
+
     public void checkTime() {
         Thread run = new Thread(new Runnable() {
             @Override
