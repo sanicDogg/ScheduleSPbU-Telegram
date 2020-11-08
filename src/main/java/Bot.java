@@ -30,7 +30,7 @@ public class Bot extends TelegramLongPollingBot {
     public void setDb(Database db) {
         this.db = db;
     }
-    public static LocalDate todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
+    private LocalDate todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
     //    id текущего чата
     private long chat_id;
@@ -129,76 +129,77 @@ public class Bot extends TelegramLongPollingBot {
 //      Значаение параметра text у метода отобразит бот
 
     public SendMessage getMessage(String msg) {
+        this.user.replyKeyboardMarkup.setSelective(true);
+        this.user.replyKeyboardMarkup.setResizeKeyboard(true);
+        this.user.replyKeyboardMarkup.setOneTimeKeyboard(false);
         //specs хранит в себе все направления подгототвки(институты)
         Elements specs = this.schedule.getInstitutes();
 
-        if (user != null) {
-
-            //Если нажали на группу
-            for (Map.Entry<String, String> entry :
-                    this.user.groupLink.entrySet()) {
-                if (msg.equals(entry.getKey())) {
-                    if (checkURL()) {
-                        //Здесь хранится конечная ссылка на группу
-                        this.user.isFinalUrl = false;
-                        this.user.finalURL = this.schedule.baseURL + entry.getValue();
-                        try {
-                            this.schedule.connect(this.user.finalURL);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        setReplyKeyBoardTodayTomorrow();
-                        this.user.group = msg;
-                        String response = findScheduleAtDay(todayIs);
-
-                        return outTemplateMessage(response, false, true);
+        //Если нажали на группу
+        for (Map.Entry<String, String> entry :
+                this.user.groupLink.entrySet()) {
+            if (msg.equals(entry.getKey())) {
+                if (checkURL()) {
+                    //Здесь хранится конечная ссылка на группу
+                    this.user.isFinalUrl = false;
+                    this.user.finalURL = this.schedule.baseURL + entry.getValue();
+                    try {
+                        this.schedule.connect(this.user.finalURL);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+
+                    setReplyKeyBoardTodayTomorrow();
+                    this.user.group = msg;
+                    String response = findScheduleAtDay(todayIs);
+
+                    return outTemplateMessage(response, false, true);
                 }
             }
+        }
 
-            //Если нажали на год поступления
-            for (Element year :
-                    this.years) {
-                if (msg.equals(year.text())) {
-                    if (checkURL()) {
-                        this.user.keyboard.clear();
-                        //Очищаем переменную url и вставляем в нее новую ссылку
-                        clearURL();
-                        this.user.url.append(year.select("a").attr("href"));
-                        //Карта хранит пары "Группа - Ссылка"
-                        this.user.groupLink = this.schedule.getGroups(this.user.url.toString());
+        //Если нажали на год поступления
+        for (Element year :
+                this.years) {
+            if (msg.equals(year.text())) {
+                if (checkURL()) {
+                    this.user.keyboard.clear();
+                    //Очищаем переменную url и вставляем в нее новую ссылку
+                    clearURL();
+                    this.user.url.append(year.select("a").attr("href"));
+                    //Карта хранит пары "Группа - Ссылка"
+                    this.user.groupLink = this.schedule.getGroups(this.user.url.toString());
 
-                        for (Map.Entry<String, String> entry :
-                                this.user.groupLink.entrySet()) {
-                            //Клавиатура, отображающая группы из карты
-                            KeyboardRow keyboardRow1 = new KeyboardRow();
-                            keyboardRow1.add(entry.getKey());
-                            this.user.keyboard.add(keyboardRow1);
-                        }
+                    for (Map.Entry<String, String> entry :
+                            this.user.groupLink.entrySet()){
+                        //Клавиатура, отображающая группы из карты
+                        KeyboardRow keyboardRow1 = new KeyboardRow();
+                        keyboardRow1.add(entry.getKey());
+                        this.user.keyboard.add(keyboardRow1);
+                    }
 
-                        return outTemplateMessage("Выберите группу", false, true);
-                    } else return getErrorMessage();
-                }
+                    return outTemplateMessage("Выберите группу", false, true);
+                } else return getErrorMessage();
             }
+        }
 
-            //Если нажали на программу подготовки
-            for (String secondSpec :
-                    this.user.secondSpecs) {
-                if (msg.equals(secondSpec)) {
-                    return outYearOfStudy(secondSpec, this.user.currentStudyLevel);
-                }
+        //Если нажали на программу подготовки
+        for (String secondSpec :
+                this.user.secondSpecs) {
+            if (msg.equals(secondSpec)) {
+                return outYearOfStudy(secondSpec, this.user.currentStudyLevel);
             }
+        }
 
-            //Если нажали на магистратуру/бакалавриат и т.д.
-            for (String s :
-                    this.user.studyLevelsList) {
-                if (msg.equals(s)) {
-                    if (checkURL()) {
-                        this.user.currentStudyLevel = s;
-                        return outSecondSpec(s);
-                    } else return getErrorMessage();
+        //Если нажали на магистратуру/бакалавриат и т.д.
+        for (String s :
+                this.user.studyLevelsList) {
+            if (msg.equals(s)) {
+                if (checkURL()) {
+                    this.user.currentStudyLevel = s;
+                    return outSecondSpec(s);
                 }
+                else return getErrorMessage();
             }
         }
 
@@ -235,7 +236,6 @@ public class Bot extends TelegramLongPollingBot {
         if (msg.equals("Сегодня")) {
             this.user.currentDate = todayIs;
             String response = findScheduleAtDay(todayIs);
-            setInlineKeyboard();
             updateDatabase();
             return outTemplateMessage(response, true, false);
         }
@@ -243,7 +243,6 @@ public class Bot extends TelegramLongPollingBot {
         if (msg.equals("Завтра")) {
             this.user.currentDate = todayIs.plusDays(1);
             String response = findScheduleAtDay(this.user.currentDate);
-            setInlineKeyboard();
             updateDatabase();
             return outTemplateMessage(response, true, false);
         }
@@ -257,12 +256,9 @@ public class Bot extends TelegramLongPollingBot {
             //Очищаем все переменные и подключаемся к корню сайта
             clearVars();
             clearURL();
-            if (this.user != null) {
-                this.user.studyLevelsList.clear();
-                this.user.currentStudyLevel = "";
-
-                this.user.currentDate = todayIs;
-            } else this.user = new User();
+            this.user.studyLevelsList.clear();
+            this.user.currentStudyLevel = "";
+            this.user.currentDate = todayIs;
 
             try {
                 this.schedule.connect(this.schedule.baseURL);
@@ -661,20 +657,16 @@ public class Bot extends TelegramLongPollingBot {
 
     //Очистка переменных
     public void clearVars() {
-        if (this.user != null) {
-            this.user.keyboard.clear();
-            this.user.secondSpecs.clear();
-            this.user.groupLink.clear();
-            this.user.group = "";
-        }
+        this.user.keyboard.clear();
+        this.user.secondSpecs.clear();
         this.years.clear();
+        this.user.groupLink.clear();
+        this.user.group = "";
     }
 
     public void clearURL() {
-        if (this.user != null) {
-            this.user.url.setLength(0);
-            this.user.url.append(this.schedule.baseURL);
-        }
+        this.user.url.setLength(0);
+        this.user.url.append(this.schedule.baseURL);
     }
 
     @Override

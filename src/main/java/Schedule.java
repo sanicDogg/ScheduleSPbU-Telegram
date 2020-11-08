@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 public class Schedule {
     public Document document;
-    public static final String baseURL = "https://timetable.spbu.ru";
+    public final String baseURL = "https://timetable.spbu.ru";
 
     public Schedule() {
         try {

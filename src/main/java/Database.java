@@ -15,14 +15,8 @@ public class Database {
     }
 
     private Connection getConnection() throws SQLException, URISyntaxException {
-        //String dbURL = System.getenv("JDBC_DATABASE_URL");
-
-        String dbUrl = "jdbc:postgresql://ec2-18-203-62-227.eu-west-1.compute.amazonaws.com:5432/d4qcqsv0ujkg35";
-        String username = "bhxeblxhldvnoy";
-        String password = "78a34cb6e88887224cc87ee191023728f6e3ba70272de90e4550025a247c78ec";
-        return DriverManager.getConnection(dbUrl, username, password);
-
-        //return DriverManager.getConnection(dbURL);
+        String dbURL = System.getenv("JDBC_DATABASE_URL");
+        return DriverManager.getConnection(dbURL);
     }
 
     // Выполнить SQL-запрос

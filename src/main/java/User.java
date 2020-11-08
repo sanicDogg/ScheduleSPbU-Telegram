@@ -30,14 +30,8 @@ public class User {
     public User() {
         this.keyboard = new ArrayList();
         this.replyKeyboardMarkup = new ReplyKeyboardMarkup();
-
-        this.replyKeyboardMarkup.setSelective(true);
-        this.replyKeyboardMarkup.setResizeKeyboard(true);
-        this.replyKeyboardMarkup.setOneTimeKeyboard(false);
-
         this.inlineKeyboardMarkup = new InlineKeyboardMarkup();
-        this.url = new StringBuilder(Schedule.baseURL);
-        this.currentDate = Bot.todayIs;
+        this.url = new StringBuilder();
         this.scheduleWithDateList = new ArrayList<>();
         this.secondSpecs = new ArrayList<>();
         this.groupLink = new HashMap<>();
