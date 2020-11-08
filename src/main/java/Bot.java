@@ -45,7 +45,7 @@ public class Bot extends TelegramLongPollingBot {
     private User user = null;
 
     /* DEBUG */
-    private boolean ifJustStarted = true;
+    private final boolean ifJustStarted = true;
 
     // Метод, выполняющийся при получении сообщений
     @Override

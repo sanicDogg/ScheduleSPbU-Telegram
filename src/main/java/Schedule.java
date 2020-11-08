@@ -22,7 +22,7 @@ public class Schedule {
 
     public void connect(String url) throws IOException {
         try {
-            document = Jsoup.connect(url)
+            document = Jsoup.connect(url).validateTLSCertificates(false)
                     .header("Accept-Language", "ru-RU, ru;q=0.9")
                     .get();
 
