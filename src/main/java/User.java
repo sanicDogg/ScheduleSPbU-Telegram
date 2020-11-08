@@ -28,5 +28,13 @@ public class User {
     public String group;
 
     public User() {
+        this.keyboard = new ArrayList();
+        this.replyKeyboardMarkup = new ReplyKeyboardMarkup();
+        this.inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        this.url = new StringBuilder();
+        this.scheduleWithDateList = new ArrayList<>();
+        this.secondSpecs = new ArrayList<>();
+        this.groupLink = new HashMap<>();
+        this.studyLevelsList = new ArrayList<>();
     }
 }
