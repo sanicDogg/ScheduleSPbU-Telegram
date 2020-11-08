@@ -333,6 +333,7 @@ public class Bot extends TelegramLongPollingBot {
                 if (user.equals("undefined")) {
                     db.addUser(this.chat_id,
                             this.username, "Unknown", json);
+                    this.user = new User();
                     // LOGS
                     System.out.println("New user has been added to a database");
                 }
