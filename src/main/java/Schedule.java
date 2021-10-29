@@ -151,8 +151,12 @@ public class Schedule {
 
     public StringBuffer getLocationAndCabinet(String location) {
         StringBuffer sb = new StringBuffer();
-        //Находим индекс начала номера аудитории с конца
-        int beginIndex = getIndexOfLastSpace(location);
+
+        if (!location.substring(location.length() - 5).equals(","))
+            return new StringBuffer("Место проведения: " + location).append("\n");
+
+        // Обрезаем 3 цифры с конца, это и есть номер аудитории
+        int beginIndex = location.length() - 4;
         String cabinet = location.substring(beginIndex);
         location = location.substring(0, beginIndex - 1);
         //Выделяем курсивом номер аудитории
