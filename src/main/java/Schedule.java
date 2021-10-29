@@ -164,7 +164,7 @@ public class Schedule {
         //Выделяем курсивом номер аудитории
         sb.append(location);
 
-        sb.append("\n <i>Аудитория: ")
+        sb.append("\n<i>Аудитория: ")
                 .append(cabinet).append("</i>").append("\n");
         return sb;
     }
