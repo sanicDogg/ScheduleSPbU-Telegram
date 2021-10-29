@@ -152,7 +152,9 @@ public class Schedule {
     public StringBuffer getLocationAndCabinet(String location) {
         StringBuffer sb = new StringBuffer();
 
-        if (!location.substring(location.length() - 4).equals(","))
+        // Проверка наличия аудитории
+        String comma = location.substring(location.length() - 4, location.length() - 3);
+        if (!comma.equals(","))
             return new StringBuffer("Место проведения: " + location).append("\n");
 
         // Обрезаем 3 цифры с конца, это и есть номер аудитории
