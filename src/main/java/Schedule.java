@@ -9,6 +9,7 @@ import java.util.HashMap;
 public class Schedule {
     public Document document;
     public static final String baseURL = "https://timetable.spbu.ru";
+    public static final String  ONLINE_LESSON = "С использованием информационно-коммуникационных технологий";
 
     public Schedule() {
         try {
@@ -127,16 +128,16 @@ public class Schedule {
 //          Получаем место проведения занятия
                 String location = subject.select(".studyevent-locations").text();
 
-                if (location.equals("")) location = " Местоположения нет на сайте";
+                if (location.equals("")) {
+                    sb.append("<i>Местоположения нет на сайте</i>").append("\n");
+                } else
 
-                //Находим индекс начала номера аудитории с конца
-                int beginIndex = getIndexOfLastSpace(location);
-                String cabinet = location.substring(beginIndex);
-                location = location.substring(0, beginIndex - 1);
-                //Выделяем курсивом номер аудитории
-                sb.append(location).append("\n <i>Аудитория: ")
-                        .append(cabinet).append("</i>")
-                        .append("\n");
+                if (location.equals(ONLINE_LESSON)) {
+                    sb.append("<i>Место проведения: онлайн</i>").append("\n");
+                } else
+
+                sb.append(getLocationAndCabinet(location));
+
 //          Получаем преподавателя
                 sb.append(subject.select(".studyevent-educators").text()).append("\n");
                 sb.append("\n");
@@ -146,6 +147,20 @@ public class Schedule {
         }
 
         return scheduleWithDateList;
+    }
+
+    public StringBuffer getLocationAndCabinet(String location) {
+        StringBuffer sb = new StringBuffer();
+        //Находим индекс начала номера аудитории с конца
+        int beginIndex = getIndexOfLastSpace(location);
+        String cabinet = location.substring(beginIndex);
+        location = location.substring(0, beginIndex - 1);
+        //Выделяем курсивом номер аудитории
+        sb.append(location);
+
+        sb.append("\n <i>Аудитория: ")
+                .append(cabinet).append("</i>").append("\n");
+        return sb;
     }
 
     public int getIndexOfLastSpace(String s){
