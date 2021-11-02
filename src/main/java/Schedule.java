@@ -160,7 +160,7 @@ public class Schedule {
             sb.append("<s>").append(subjectTitle).append("</s>");
         } else sb.append(subjectTitle);
 
-        sb.append("</b><\n>");
+        sb.append("</b>\n");
         return sb;
     }
 
