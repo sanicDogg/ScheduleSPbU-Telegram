@@ -124,7 +124,7 @@ public class Schedule {
 //                Получаем время
                 sb.append(subject.select(".studyevent-datetime").text()).append("\n");
 //                    Получаем предмет
-                sb.append("<b>").append(subject.select(".studyevent-subject").text()).append("</b>\n");
+                sb.append(getSubjectTitle(subject.select(".studyevent-subject")));
 //          Получаем место проведения занятия
                 String location = subject.select(".studyevent-locations").text();
 
@@ -147,6 +147,21 @@ public class Schedule {
         }
 
         return scheduleWithDateList;
+    }
+
+    public StringBuffer getSubjectTitle(Elements studyEventSubject) {
+        StringBuffer sb = new StringBuffer();
+        sb.append("<b>");
+        String subjectTitle = studyEventSubject.text();
+
+        Element moreInfo = studyEventSubject.select(".moreinfo").get(0);
+        // Зачеркиваем название предмета, если занятие отменено
+        if (moreInfo.hasClass("cancelled")) {
+            sb.append("<s>").append(subjectTitle).append("</s>");
+        } else sb.append(subjectTitle);
+
+        sb.append("</b><\n>");
+        return sb;
     }
 
     public StringBuffer getLocationAndCabinet(String location) {
