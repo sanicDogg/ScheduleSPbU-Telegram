@@ -7,16 +7,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Database {
-    private Connection connection;
-    private String table = "users";
+    private final Connection connection;
+    private final String table = "users";
 
     public Database() throws SQLException, URISyntaxException {
         this.connection = getConnection();
     }
 
     private Connection getConnection() throws SQLException, URISyntaxException {
-        String dbURL = System.getenv("JDBC_DATABASE_URL");
-        return DriverManager.getConnection(dbURL);
+        URI dbUri = new URI(System.getenv("DATABASE_URL"));
+
+
+        String username = dbUri.getUserInfo().split(":")[0];
+        String password = dbUri.getUserInfo().split(":")[1];
+        String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath() + "?sslmode=require";
+
+        return DriverManager.getConnection(dbUrl, username, password);
     }
 
     // Выполнить SQL-запрос
@@ -27,19 +33,19 @@ public class Database {
     }
 
     // Добавить пользователя в таблицу
-    public int addUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
+    public void addUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
         String query = "INSERT INTO " + this.table + " (username_tg, \"group\", chat_id, \"user.class\") " +
                 "VALUES ('" + username_tg + "','" + group + "'," + chat_id + ",'" +  userClassJSON + "');";
-        return  executeUpdate(query);
+        executeUpdate(query);
     }
 
     // Изменить поля пользователя в таблице
-    public int editUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
+    public void editUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
         String query = "UPDATE public.users\n" +
                 "\tSET username_tg='" + username_tg + "', \"group\"='" + group + "', chat_id=" +
                 chat_id + ", \"user.class\"='" + userClassJSON + "'\n" +
                 "\tWHERE chat_id=" + chat_id + ";";
-        return  executeUpdate(query);
+        executeUpdate(query);
     }
 
     // Поиск нужного пользователя (возвращает список из двух элементов -

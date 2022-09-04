@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class User {
-    LocalDate currentDate;
+    public LocalDate currentDate;
     // Клавиатуры
     public ArrayList keyboard = new ArrayList<>();
     public ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();

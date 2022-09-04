@@ -27,14 +27,16 @@ public class Bot extends TelegramLongPollingBot {
 
     // База данных, инициализируется в Main.java
     private Database db = null;
+
     public void setDb(Database db) {
         this.db = db;
     }
+
     public static LocalDate todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
     //    id текущего чата
     private long chat_id;
-    private long prevChat_id=0;
+    private long prevChat_id = 0;
     private String username;
     // Объект расписания
     public Schedule schedule = new Schedule();
@@ -51,7 +53,7 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         // Получаем текущую дату
-        this.todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
+        todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
 //    ID написавшего пользователя
         update.getUpdateId();
@@ -94,7 +96,7 @@ public class Bot extends TelegramLongPollingBot {
 
             try {
                 execute(answered);
-            } catch (TelegramApiException e){
+            } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
         }
@@ -141,7 +143,7 @@ public class Bot extends TelegramLongPollingBot {
                     if (checkURL()) {
                         //Здесь хранится конечная ссылка на группу
                         this.user.isFinalUrl = false;
-                        this.user.finalURL = this.schedule.baseURL + entry.getValue();
+                        this.user.finalURL = Schedule.baseURL + entry.getValue();
                         try {
                             this.schedule.connect(this.user.finalURL);
                         } catch (IOException e) {
@@ -233,6 +235,7 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         if (msg.equals("Сегодня")) {
+            assert this.user != null;
             this.user.currentDate = todayIs;
             String response = findScheduleAtDay(todayIs);
             setInlineKeyboard();
@@ -241,6 +244,7 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         if (msg.equals("Завтра")) {
+            assert this.user != null;
             this.user.currentDate = todayIs.plusDays(1);
             String response = findScheduleAtDay(this.user.currentDate);
             setInlineKeyboard();
@@ -265,14 +269,14 @@ public class Bot extends TelegramLongPollingBot {
             } else this.user = new User();
 
             try {
-                this.schedule.connect(this.schedule.baseURL);
+                this.schedule.connect(Schedule.baseURL);
             } catch (IOException e) {
                 e.printStackTrace();
             }
             specs = this.schedule.getInstitutes();
 
             //Формируем клавиатуру
-            for (int i = 0; i < specs.size(); i=i+2) {
+            for (int i = 0; i < specs.size(); i = i + 2) {
                 KeyboardRow keyboardRow1 = new KeyboardRow();
                 Element spec1 = specs.get(i);
                 keyboardRow1.add(spec1.text());
@@ -299,7 +303,7 @@ public class Bot extends TelegramLongPollingBot {
             this.user.group = "19.Б10-вшж";
 
             try {
-                this.schedule.connect(this.schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
+                this.schedule.connect(Schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -324,30 +328,35 @@ public class Bot extends TelegramLongPollingBot {
     // если ответ пришел от другого пользователя
 
     public void doDatabase(Update update) {
-            this.username = "@" + update.getMessage().getFrom().getUserName() + " " +
-                    update.getMessage().getFrom().getFirstName() + " " +
-                    update.getMessage().getFrom().getLastName();
-            Gson gson = new Gson();
+        this.username = "@" + update.getMessage().getFrom().getUserName() + " " +
+                update.getMessage().getFrom().getFirstName() + " " +
+                update.getMessage().getFrom().getLastName();
 
-            try {
-                // db.findUser returns list with username_tg and json
-                String user = db.findUser(this.chat_id).get(0);
-                String json = gson.toJson(this.user);
-                // Если пользователя еще нет в базе
-                if (user.equals("undefined")) {
-                    db.addUser(this.chat_id,
-                            this.username, "Unknown", json);
-                    this.user = new User();
-                    // LOGS
-                    System.out.println("New user has been added to a database");
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
+//        Gson gson = new Gson();
+        Gson gson = Fix.getGsonWithSerAdapter();
+
+
+        try {
+            // db.findUser returns list with username_tg and json
+            String user = db.findUser(this.chat_id).get(0);
+            String json = gson.toJson(this.user);
+            // Если пользователя еще нет в базе
+            if (user.equals("undefined")) {
+                db.addUser(this.chat_id,
+                        this.username, "Unknown", json);
+                this.user = new User();
+                // LOGS
+                System.out.println("New user has been added to a database");
             }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void updateDatabase() {
-        Gson gson = new Gson();
+//        Gson gson = new Gson();
+        Gson gson = Fix.getGsonWithSerAdapter();
+
         String json = gson.toJson(this.user);
         try {
             db.editUser(this.chat_id, this.username, this.user.group, json);
@@ -358,9 +367,12 @@ public class Bot extends TelegramLongPollingBot {
 
     public void initUserField() {
         try {
-            Gson gson = new Gson();
+//            Gson gson = new Gson();
+            Gson gson = Fix.getGsonWithDeSerAdapter();
 
-            this.user = gson.fromJson(db.findUser(this.chat_id).get(1), User.class);
+            this.user = gson.fromJson(
+                    db.findUser(this.chat_id).get(1), User.class
+            );
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -371,7 +383,8 @@ public class Bot extends TelegramLongPollingBot {
     */
 
     public void initUserField(String json) {
-        Gson gson = new Gson();
+//        Gson gson = new Gson();
+        Gson gson = Fix.getGsonWithDeSerAdapter();
 
         this.user = gson.fromJson(json, User.class);
     }
@@ -412,16 +425,14 @@ public class Bot extends TelegramLongPollingBot {
             this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
 
             return outTemplateMessage("Выберите год поступления", false, true);
-        }
-
-        else return getErrorMessage();
+        } else return getErrorMessage();
     }
 
 
     //Отображение специальности внутри института
     // объект html - список из тегов li, внутри которых несколько блоков div, первый из
     // которых содержит название образовательной программы
-    public SendMessage outSecondSpec(String studyLevel){
+    public SendMessage outSecondSpec(String studyLevel) {
         //Проверка url на пустоту
         if (checkURL()) {
             clearVars();
@@ -478,7 +489,7 @@ public class Bot extends TelegramLongPollingBot {
 
     //Функция нужна для генерации стандартного объекта EditMessageText с клавиатурой inline
     //Вызываем ее, если хотим отредактировать сообщение
-    public EditMessageText editTemplateMessage(String text, Integer messageId, Boolean needInlineKeyboard){
+    public EditMessageText editTemplateMessage(String text, Integer messageId, Boolean needInlineKeyboard) {
         EditMessageText emt = new EditMessageText();
         emt.setText(text);
         emt.setParseMode("HTML");
@@ -489,7 +500,7 @@ public class Bot extends TelegramLongPollingBot {
         return emt;
     }
 
-    public EditMessageText editTemplateMessage(String text, Integer messageId){
+    public EditMessageText editTemplateMessage(String text, Integer messageId) {
         EditMessageText emt = new EditMessageText();
         emt.setText(text);
         emt.setParseMode("HTML");
@@ -501,7 +512,7 @@ public class Bot extends TelegramLongPollingBot {
 
     //Только один из двух флагов может принять значение "true"
     //Функция нужна для генерации стандартного объекта SendMessage с клавиатурой inline или reply
-    public SendMessage outTemplateMessage(String text, Boolean needInlineKeyboard, Boolean needReplyKeyboard){
+    public SendMessage outTemplateMessage(String text, Boolean needInlineKeyboard, Boolean needReplyKeyboard) {
         SendMessage sm = new SendMessage();
         sm.setText(text);
         sm.setChatId(chat_id);
@@ -513,7 +524,7 @@ public class Bot extends TelegramLongPollingBot {
         return sm;
     }
 
-    public SendMessage outTemplateMessage(String text){
+    public SendMessage outTemplateMessage(String text) {
         SendMessage sm = new SendMessage();
         sm.setText(text);
         sm.setParseMode("HTML");
@@ -537,9 +548,7 @@ public class Bot extends TelegramLongPollingBot {
             this.user.finalURL = this.user.finalURL.substring(0, this.user.finalURL.length() - 11);
             // Добавляем новую дату
             this.user.finalURL = this.user.finalURL + "/" + strDate;
-        }
-
-        else {
+        } else {
             this.user.finalURL = this.user.finalURL + "/" + strDate;
             this.user.isFinalUrl = true;
         }
@@ -554,9 +563,9 @@ public class Bot extends TelegramLongPollingBot {
         this.user.scheduleWithDateList = this.schedule.getSchedule();
         strDate = this.user.currentDate.format(DateTimeFormatter.ofPattern("d MMMM"));
 
-            for (ScheduleWithDate sched :
-                    this.user.scheduleWithDateList) {
-                if (sched.getDate().equals(strDate)) {
+        for (ScheduleWithDate sched :
+                this.user.scheduleWithDateList) {
+            if (sched.getDate().equals(strDate)) {
                 return this.user.group + "\n" + sched.getText();
             }
         }
@@ -573,7 +582,7 @@ public class Bot extends TelegramLongPollingBot {
         Thread run = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true){
+                while (true) {
                     try {
                         /* DEBUG
                         if (ifJustStarted) {
@@ -606,7 +615,7 @@ public class Bot extends TelegramLongPollingBot {
             e.printStackTrace();
         }
 
-        for (Map.Entry<Long, String> entry: users.entrySet()) {
+        for (Map.Entry<Long, String> entry : users.entrySet()) {
             long chat_id = entry.getKey();
             String json = entry.getValue();
             /* DEBUG */
@@ -617,7 +626,7 @@ public class Bot extends TelegramLongPollingBot {
 
             try {
                 if (!this.user.group.equals("") && !this.user.group.equals("Unknown")) {
-                    this.user.currentDate = this.todayIs.plusDays(1);
+                    this.user.currentDate = todayIs.plusDays(1);
                     String textSchedule = findScheduleAtDay(this.user.currentDate);
                     if (!textSchedule.contains("Занятий не найдено")) {
                         SendMessage sm = outTemplateMessage(textSchedule, true, false);
@@ -648,14 +657,14 @@ public class Bot extends TelegramLongPollingBot {
     public void sendMessageToCurrentUser(SendMessage sm) {
         try {
             execute(sm);
-        } catch (TelegramApiException e){
+        } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
 
     //Проверка на пустоту переменной url
     public Boolean checkURL() {
-        return !(this.user.url.toString().equals(this.schedule.baseURL))
+        return !(this.user.url.toString().equals(Schedule.baseURL))
                 && !this.user.url.toString().isEmpty();
     }
 
@@ -673,7 +682,7 @@ public class Bot extends TelegramLongPollingBot {
     public void clearURL() {
         if (this.user != null) {
             this.user.url.setLength(0);
-            this.user.url.append(this.schedule.baseURL);
+            this.user.url.append(Schedule.baseURL);
         }
     }
 

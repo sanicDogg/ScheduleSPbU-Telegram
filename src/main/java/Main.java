@@ -1,6 +1,7 @@
-import org.telegram.telegrambots.ApiContextInitializer;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiRequestException;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.net.URISyntaxException;
 import java.sql.SQLException;
@@ -8,11 +9,10 @@ import java.util.Locale;
 
 public class Main {
 
-    public static void main(String[] args) throws URISyntaxException, SQLException {
+    public static void main(String[] args) throws URISyntaxException, SQLException, TelegramApiException {
         Locale.setDefault(new Locale("ru"));
 
-        ApiContextInitializer.init();
-        TelegramBotsApi telegram = new TelegramBotsApi();
+        TelegramBotsApi telegram = new TelegramBotsApi(DefaultBotSession.class);
 
         Bot bot = new Bot();
         bot.setDb(new Database());

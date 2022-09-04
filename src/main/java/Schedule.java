@@ -23,7 +23,8 @@ public class Schedule {
 
     public void connect(String url) throws IOException {
         try {
-            document = Jsoup.connect(url).validateTLSCertificates(false)
+            document = Jsoup.connect(url)
+//                    .validateTLSCertificates(false)
                     .header("Accept-Language", "ru-RU, ru;q=0.9")
                     .get();
 
@@ -134,9 +135,7 @@ public class Schedule {
 
                 if (location.equals(ONLINE_LESSON)) {
                     sb.append("<i>Место проведения: онлайн</i>").append("\n");
-                } else
-
-                sb.append(getLocationAndCabinet(location));
+                } else sb.append(getLocationAndCabinet(location));
 
 //          Получаем преподавателя
                 sb.append(subject.select(".studyevent-educators").text()).append("\n");
