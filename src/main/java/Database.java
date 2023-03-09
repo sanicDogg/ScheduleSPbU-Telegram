@@ -76,6 +76,11 @@ public class Database {
         return chatJSON;
     }
 
+    /**
+     * Вернуть словарь всех пользователей из БД
+     * @return HashMap ключи - chat_id, значения - json пользователя
+     */
+
     public HashMap<Long, String> getAllUsers() throws SQLException {
         HashMap<Long, String> users = new HashMap<>();
 

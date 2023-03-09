@@ -2,6 +2,8 @@ import com.google.gson.Gson;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.pinnedmessages.PinChatMessage;
+import org.telegram.telegrambots.meta.api.methods.pinnedmessages.UnpinAllChatMessages;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -46,9 +48,6 @@ public class Bot extends TelegramLongPollingBot {
     // Текущий пользователь
     private User user = null;
 
-    /* DEBUG */
-    private final boolean ifJustStarted = true;
-
     // Метод, выполняющийся при получении сообщений
     @Override
     public void onUpdateReceived(Update update) {
@@ -60,11 +59,12 @@ public class Bot extends TelegramLongPollingBot {
 
         // Пришел текст, или была нажата кнопка?
         if (update.hasMessage()) {
+            String messageText = update.getMessage().getText();
+            if (messageText == null) return;
             this.chat_id = update.getMessage().getChatId();
             doDatabase(update);
             if (this.prevChat_id != this.chat_id) initUserField();
-            SendMessage sendMessage;
-            sendMessage = getMessage(update.getMessage().getText());
+            SendMessage sendMessage = getMessage(messageText);
             sendMessage.setChatId(this.chat_id);
             updateDatabase();
 
@@ -232,6 +232,10 @@ public class Bot extends TelegramLongPollingBot {
 
         if (msg.equals("/sschtau")) {
             sendScheduleToAllUsers();
+        }
+
+        if (msg.equals("/smtaudonate")) {
+            sendMessageToAllUsers("Привет, дорогой пользователь моего бота! Бот используют уже больше тысячи студентов \uD83D\uDE2E\nЯ никогда не думал, что количество пользователей вырастет до таких высот )\nУ меня (создателя) заканчиваются ресурсы на поддержку данной программы, поэтому я ввожу систему донатов для обеспечения стабильной работы бота с расписанием!\nТы можешь задонатить любую сумму для того, чтобы помочь мне содержать сборку бота на серверах. Эта возможность доступна по ссылке ниже (можно сделать сбер перевод)\nhttps://spbu-donation.onrender.com\nЕсли ты хочешь поделиться обратной связью по работе бота или предложить новые фичи, можешь написать мне в телеграм @sanicDogg");
         }
 
         if (msg.equals("Сегодня")) {
@@ -584,13 +588,6 @@ public class Bot extends TelegramLongPollingBot {
             public void run() {
                 while (true) {
                     try {
-                        /* DEBUG
-                        if (ifJustStarted) {
-                            sendScheduleToAllUsers();
-                            ifJustStarted = false;
-                        };
-                        */
-
                         Thread.sleep(60 * 1000);
                         todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
                         Instant instant = Instant.now();
@@ -605,6 +602,38 @@ public class Bot extends TelegramLongPollingBot {
             }
         });
         run.start();
+    }
+
+    private void sendMessageToAllUsers(String message) {
+        HashMap<Long, String> allUsers;
+
+        try {
+            allUsers = db.getAllUsers();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        for (Map.Entry<Long, String> entry : allUsers.entrySet()) {
+            long chat_id = entry.getKey();
+            this.chat_id = chat_id;
+            SendMessage sm = outTemplateMessage(message);
+            long message_id;
+            try {
+                message_id = sendMessageToCurrentUser(sm).getMessageId();
+            } catch (NullPointerException e) {
+                System.out.println("Сообщение не отправлено пользователю " + chat_id);
+                continue;
+            }
+            PinChatMessage pinChatMessage = new PinChatMessage(String.valueOf(chat_id), (int) message_id, true);
+            // Для открепления всех сообщений (срабатывает при переоткрытии диалога в тг)
+            UnpinAllChatMessages unpinAllChatMessages = new UnpinAllChatMessages(String.valueOf(chat_id));
+            try {
+                execute(pinChatMessage);
+                System.out.println("Отправлено пользователю " + chat_id + "!");
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void sendScheduleToAllUsers() {
@@ -653,13 +682,13 @@ public class Bot extends TelegramLongPollingBot {
     /*
         Отправляет месседж текущему chat_id
     */
-
-    public void sendMessageToCurrentUser(SendMessage sm) {
+    public Message sendMessageToCurrentUser(SendMessage sm) {
         try {
-            execute(sm);
+            return execute(sm);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            System.out.println("Ошибка отправки текущему пользователю");
         }
+        return null;
     }
 
     //Проверка на пустоту переменной url
