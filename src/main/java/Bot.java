@@ -71,6 +71,7 @@ public class Bot extends TelegramLongPollingBot {
             System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + " " +
                     update.getMessage().getFrom().getUserName() + " с содержимым " + update.getMessage().getText());
 
+            if (sendMessage.getText().equals("")) return;
             try {
                 execute(sendMessage);
             } catch (TelegramApiException e) {
@@ -238,7 +239,9 @@ public class Bot extends TelegramLongPollingBot {
 
         if (msg.equals("/smtaucomeback")) {
             sendMessageToAllUsers("Привет! Бот был несколько дней в отключке, но теперь он переехал на новый хостинг и стал работать немного быстрее. Приятного пользования! Для всех, кто желает помочь в поддержке бота: можно донатить \nhttps://spbu-donation.onrender.com\n", false);
-            return new SendMessage();
+            SendMessage sm = new SendMessage();
+            sm.setText("");
+            return sm;
         }
 
         if (msg.equals("Сегодня")) {
@@ -628,7 +631,7 @@ public class Bot extends TelegramLongPollingBot {
                 System.out.println("Сообщение не отправлено пользователю " + chat_id);
                 continue;
             }
-            if (!needToBePinned) break;
+            if (!needToBePinned) continue;
             PinChatMessage pinChatMessage = new PinChatMessage(String.valueOf(chat_id), (int) message_id, true);
             // Для открепления всех сообщений (срабатывает при переоткрытии диалога в тг)
             UnpinAllChatMessages unpinAllChatMessages = new UnpinAllChatMessages(String.valueOf(chat_id));
