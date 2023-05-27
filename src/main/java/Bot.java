@@ -68,9 +68,8 @@ public class Bot extends TelegramLongPollingBot {
             sendMessage.setChatId(this.chat_id);
             updateDatabase();
 
-            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + "\n"
-                    + update.getMessage().getFrom().getUserName() +
-                    "\n с содержимым " + update.getMessage().getText());
+            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + " " +
+                    update.getMessage().getFrom().getUserName() + " с содержимым " + update.getMessage().getText());
 
             try {
                 execute(sendMessage);
@@ -91,8 +90,7 @@ public class Bot extends TelegramLongPollingBot {
             updateDatabase();
 
             System.out.println("Пришел callbackQuery от пользователя " + message.getChatId() +
-                    "\n сообщение " + message.getMessageId() +
-                    "\n с содержимым " + response);
+                    " сообщение " + message.getMessageId() + " с содержимым " + response);
 
             try {
                 execute(answered);
@@ -235,7 +233,12 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         if (msg.equals("/smtaudonate")) {
-            sendMessageToAllUsers("Привет, дорогой пользователь моего бота! Бот используют уже больше тысячи студентов \uD83D\uDE2E\nЯ никогда не думал, что количество пользователей вырастет до таких высот )\nУ меня (создателя) заканчиваются ресурсы на поддержку данной программы, поэтому я ввожу систему донатов для обеспечения стабильной работы бота с расписанием!\nТы можешь задонатить любую сумму для того, чтобы помочь мне содержать сборку бота на серверах. Эта возможность доступна по ссылке ниже (можно сделать сбер перевод)\nhttps://spbu-donation.onrender.com\nЕсли ты хочешь поделиться обратной связью по работе бота или предложить новые фичи, можешь написать мне в телеграм @sanicDogg");
+            sendMessageToAllUsers("Привет, дорогой пользователь моего бота! Бот используют уже больше тысячи студентов \uD83D\uDE2E\nЯ никогда не думал, что количество пользователей вырастет до таких высот )\nУ меня (создателя) заканчиваются ресурсы на поддержку данной программы, поэтому я ввожу систему донатов для обеспечения стабильной работы бота с расписанием!\nТы можешь задонатить любую сумму для того, чтобы помочь мне содержать сборку бота на серверах. Эта возможность доступна по ссылке ниже (можно сделать сбер перевод)\nhttps://spbu-donation.onrender.com\nЕсли ты хочешь поделиться обратной связью по работе бота или предложить новые фичи, можешь написать мне в телеграм @sanicDogg", true);
+        }
+
+        if (msg.equals("/smtaucomeback")) {
+            sendMessageToAllUsers("Привет! Бот был несколько дней в отключке, но теперь он переехал на новый хостинг и стал работать немного быстрее. Приятного пользования! Для всех, кто желает помочь в поддержке бота: можно донатить \nhttps://spbu-donation.onrender.com\n", false);
+            return new SendMessage();
         }
 
         if (msg.equals("Сегодня")) {
@@ -604,7 +607,7 @@ public class Bot extends TelegramLongPollingBot {
         run.start();
     }
 
-    private void sendMessageToAllUsers(String message) {
+    private void sendMessageToAllUsers(String message, boolean needToBePinned) {
         HashMap<Long, String> allUsers;
 
         try {
@@ -620,16 +623,17 @@ public class Bot extends TelegramLongPollingBot {
             long message_id;
             try {
                 message_id = sendMessageToCurrentUser(sm).getMessageId();
+                System.out.println("Отправлено пользователю " + chat_id + "!");
             } catch (NullPointerException e) {
                 System.out.println("Сообщение не отправлено пользователю " + chat_id);
                 continue;
             }
+            if (!needToBePinned) break;
             PinChatMessage pinChatMessage = new PinChatMessage(String.valueOf(chat_id), (int) message_id, true);
             // Для открепления всех сообщений (срабатывает при переоткрытии диалога в тг)
             UnpinAllChatMessages unpinAllChatMessages = new UnpinAllChatMessages(String.valueOf(chat_id));
             try {
                 execute(pinChatMessage);
-                System.out.println("Отправлено пользователю " + chat_id + "!");
             } catch (TelegramApiException e) {
                 e.printStackTrace();
             }
