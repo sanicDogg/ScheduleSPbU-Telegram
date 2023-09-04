@@ -213,8 +213,8 @@ public class Bot extends TelegramLongPollingBot {
                 this.user.url.append(e.attr("href"));
 
                 Elements studyLevels = this.schedule.getStudyLevels(this.user.url.toString());
-                studyLevels.remove(0);
-                studyLevels.remove(0);
+//                studyLevels.remove(0);
+//                studyLevels.remove(0);
                 //Формируем клавиатуру
                 for (Element e1 :
                         studyLevels) {
