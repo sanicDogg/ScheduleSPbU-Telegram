@@ -306,14 +306,22 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         //Расписание одной группы
-        if (msg.equals("/rasp") || msg.equals("р") || msg.equals("расписание") || msg.equals("r")) {
+        boolean jourScheduleCommand = msg.equals("/rasp") || msg.equals("р") || msg.equals("расписание") || msg.equals("r");
+        boolean lawScheduleCommand = msg.equals("/law") || msg.equals("ю") || msg.equals("law");
+        if (jourScheduleCommand || lawScheduleCommand) {
             clearVars();
             clearURL();
             this.user.currentDate = todayIs;
-            this.user.group = "19.Б10-вшж";
+            this.user.group = jourScheduleCommand
+                    ? "20.Б14-вшж"
+                    : "22.М20-ю";
+            String jourLink = "/JOUR/StudentGroupEvents/Primary/367039";
+            String lawLink = "/LAWS/StudentGroupEvents/Primary/365853";
+            this.user.isFinalUrl = false;
+            this.user.finalURL = Schedule.baseURL + (jourScheduleCommand ? jourLink : lawLink);
 
             try {
-                this.schedule.connect(Schedule.baseURL + "/JOUR/StudentGroupEvents/Primary/249260");
+                this.schedule.connect(this.user.finalURL);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -326,16 +334,18 @@ public class Bot extends TelegramLongPollingBot {
 
         //Команда "/help"
         if (msg.equals("/help")) {
-            return outTemplateMessage("Если вы выбрали не подходящую\nгруппу, попробуйте заново\n/start" +
-                    "\nПо всем вопросам писать @sanicDogg");
+            return outTemplateMessage(
+                    "Если вы выбрали не подходящую группу, попробуйте заново\n/start" +
+                    "\n\nПо всем вопросам писать @sanicDogg"
+            );
         }
 
         return getErrorMessage();
     }
 
-    // Метод (3 метода) добавляет пользователя в базу, если его нет; обновляет базу, если
-    // пришел овтет от старого пользователя; начинает работать с другим пользователем,
-    // если ответ пришел от другого пользователя
+    // Метод (3 метода) добавляет пользователя в базу, если его нет;
+    // обновляет базу, если пришел овтет от старого пользователя;
+    // начинает работать с другим пользователем, если ответ пришел от другого пользователя
 
     public void doDatabase(Update update) {
         this.username = "@" + update.getMessage().getFrom().getUserName() + " " +
