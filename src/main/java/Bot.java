@@ -11,6 +11,7 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.tinylog.Logger;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -23,7 +24,7 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 public class Bot extends TelegramLongPollingBot {
-    //    Константы
+    // Константы
     public final String BOT_USERNAME = System.getenv("BOT_USERNAME");
     public final String BOT_TOKEN = System.getenv("BOT_TOKEN");
 
@@ -36,7 +37,7 @@ public class Bot extends TelegramLongPollingBot {
 
     public static LocalDate todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
-    //    id текущего чата
+    // id текущего чата
     private long chat_id;
     private long prevChat_id = 0;
     private String username;
@@ -54,11 +55,14 @@ public class Bot extends TelegramLongPollingBot {
         // Получаем текущую дату
         todayIs = LocalDate.now(ZoneId.of("Europe/Moscow"));
 
-//    ID написавшего пользователя
+        // ID написавшего пользователя
         update.getUpdateId();
 
         // Пришел текст, или была нажата кнопка?
         if (update.hasMessage()) {
+            Logger.info("Пришел текст от пользователя " + update.getMessage().getChatId() + " " +
+                    update.getMessage().getFrom().getUserName() + " с содержимым " + update.getMessage().getText());
+
             String messageText = update.getMessage().getText();
             if (messageText == null) return;
             this.chat_id = update.getMessage().getChatId();
@@ -68,10 +72,7 @@ public class Bot extends TelegramLongPollingBot {
             sendMessage.setChatId(this.chat_id);
             updateDatabase();
 
-            System.out.println("Пришел текст от пользователя " + update.getMessage().getChatId() + " " +
-                    update.getMessage().getFrom().getUserName() + " с содержимым " + update.getMessage().getText());
-
-            if (sendMessage.getText().equals("")) return;
+            if (sendMessage.getText().isEmpty()) return;
             try {
                 execute(sendMessage);
             } catch (TelegramApiException e) {
@@ -81,6 +82,10 @@ public class Bot extends TelegramLongPollingBot {
         } else if (update.hasCallbackQuery()) {
             String response = update.getCallbackQuery().getData();
             Message message = update.getCallbackQuery().getMessage();
+
+            Logger.info("Пришел callbackQuery от пользователя " + message.getChatId() +
+                    " сообщение " + message.getMessageId() + " с содержимым " + response);
+
             this.chat_id = message.getChatId();
             this.username = "@" + update.getCallbackQuery().getFrom().getUserName() + " " +
                     update.getCallbackQuery().getFrom().getFirstName() + " " +
@@ -89,9 +94,6 @@ public class Bot extends TelegramLongPollingBot {
             initUserField();
             EditMessageText answered = answerCallbackQuery(response, message);
             updateDatabase();
-
-            System.out.println("Пришел callbackQuery от пользователя " + message.getChatId() +
-                    " сообщение " + message.getMessageId() + " с содержимым " + response);
 
             try {
                 execute(answered);
@@ -127,14 +129,13 @@ public class Bot extends TelegramLongPollingBot {
 //      Метод формирует ответ бота на сообщение пользователя
 //      Метод должен возвращать объект SendMessage с текстом
 //      объект SendMessage создается методом getTemplateMessage()
-//      Значаение параметра text у метода отобразит бот
+//      Значение параметра text у метода отобразит бот
 
     public SendMessage getMessage(String msg) {
         //specs хранит в себе все направления подгототвки(институты)
         Elements specs = this.schedule.getInstitutes();
 
         if (user != null) {
-
             //Если нажали на группу
             for (Map.Entry<String, String> entry :
                     this.user.groupLink.entrySet()) {
@@ -231,17 +232,17 @@ public class Bot extends TelegramLongPollingBot {
 
         if (msg.equals("/sschtau")) {
             sendScheduleToAllUsers();
+            return outTemplateMessage("");
         }
 
         if (msg.equals("/smtaudonate")) {
             sendMessageToAllUsers("Привет, дорогой пользователь моего бота! Бот используют уже больше тысячи студентов \uD83D\uDE2E\nЯ никогда не думал, что количество пользователей вырастет до таких высот )\nУ меня (создателя) заканчиваются ресурсы на поддержку данной программы, поэтому я ввожу систему донатов для обеспечения стабильной работы бота с расписанием!\nТы можешь задонатить любую сумму для того, чтобы помочь мне содержать сборку бота на серверах. Эта возможность доступна по ссылке ниже (можно сделать сбер перевод)\nhttps://spbu-donation.onrender.com\nЕсли ты хочешь поделиться обратной связью по работе бота или предложить новые фичи, можешь написать мне в телеграм @sanicDogg", true);
+            return outTemplateMessage("");
         }
 
         if (msg.equals("/smtaucomeback")) {
             sendMessageToAllUsers("Привет! Бот был несколько дней в отключке, но теперь он переехал на новый хостинг и стал работать немного быстрее. Приятного пользования! Для всех, кто желает помочь в поддержке бота: можно донатить \nhttps://spbu-donation.onrender.com\n", false);
-            SendMessage sm = new SendMessage();
-            sm.setText("");
-            return sm;
+            return outTemplateMessage("");
         }
 
         if (msg.equals("Сегодня")) {
@@ -295,7 +296,7 @@ public class Bot extends TelegramLongPollingBot {
                     Element spec2 = specs.get(i + 1);
                     keyboardRow1.add(spec2.text());
                 } catch (IndexOutOfBoundsException e) {
-                    System.out.println("Количество меганаправлений нечетно");
+                    Logger.info("Количество меганаправлений нечетно");
                 }
                 this.user.keyboard.add(keyboardRow1);
             }
@@ -344,7 +345,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     // Метод (3 метода) добавляет пользователя в базу, если его нет;
-    // обновляет базу, если пришел овтет от старого пользователя;
+    // обновляет базу, если пришел ответ от старого пользователя;
     // начинает работать с другим пользователем, если ответ пришел от другого пользователя
 
     public void doDatabase(Update update) {
@@ -366,7 +367,7 @@ public class Bot extends TelegramLongPollingBot {
                         this.username, "Unknown", json);
                 this.user = new User();
                 // LOGS
-                System.out.println("New user has been added to a database");
+                Logger.info("New user has been added to a database");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -494,7 +495,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void setInlineKeyboard() {
-        //Здесь другой способ создания макета кливиатуры, но суть та же
+        //Здесь другой способ создания макета клавиатуры, но суть та же
         InlineKeyboardButton btn1 = new InlineKeyboardButton("Предыдущий день");
         InlineKeyboardButton btn2 = new InlineKeyboardButton("Следующий день");
         List<InlineKeyboardButton> keyboardButtonsRow1 = new ArrayList<>();
@@ -576,7 +577,7 @@ public class Bot extends TelegramLongPollingBot {
         try {
             this.schedule.connect(this.user.finalURL);
         } catch (IOException e) {
-            System.out.println("IOException при попытке найти расписание по дате");
+            Logger.error("IOException при попытке найти расписание по дате");
             e.printStackTrace();
         }
 
@@ -636,9 +637,9 @@ public class Bot extends TelegramLongPollingBot {
             long message_id;
             try {
                 message_id = sendMessageToCurrentUser(sm).getMessageId();
-                System.out.println("Отправлено пользователю " + chat_id + "!");
+                Logger.info("Отправлено пользователю " + chat_id + "!");
             } catch (NullPointerException e) {
-                System.out.println("Сообщение не отправлено пользователю " + chat_id);
+                Logger.warn("Сообщение не отправлено пользователю " + chat_id);
                 continue;
             }
             if (!needToBePinned) continue;
@@ -665,7 +666,7 @@ public class Bot extends TelegramLongPollingBot {
             long chat_id = entry.getKey();
             String json = entry.getValue();
             /* DEBUG */
-            System.out.println("Trying to send message... " + "USER: " + chat_id);
+            Logger.debug("Trying to send message... " + "USER: " + chat_id);
 
             this.chat_id = chat_id;
             initUserField(json);
@@ -678,13 +679,15 @@ public class Bot extends TelegramLongPollingBot {
                         SendMessage sm = outTemplateMessage(textSchedule, true, false);
                         sendMessageToCurrentUser(sm);
 
-                        System.out.println("Message has been sent to user " + this.chat_id);
+                        Logger.info("Message has been sent to user " + this.chat_id);
+                    } else {
+                        Logger.info("Empty schedule for tomorrow. Skipped");
                     }
                 } else {
-                    System.out.println("Message has not been sent to user " + chat_id);
+                    Logger.warn("Message has not been sent to user " + chat_id);
                 }
             } catch (NullPointerException e) {
-                System.out.println("NullPointerException. Message has not been sent to user " + chat_id);
+                Logger.error("NullPointerException. Message has not been sent to user " + chat_id);
                 continue;
             }
 
@@ -703,7 +706,7 @@ public class Bot extends TelegramLongPollingBot {
         try {
             return execute(sm);
         } catch (TelegramApiException e) {
-            System.out.println("Ошибка отправки текущему пользователю");
+            Logger.error("Ошибка отправки текущему пользователю");
         }
         return null;
     }
