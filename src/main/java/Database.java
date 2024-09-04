@@ -17,7 +17,6 @@ public class Database {
     private Connection getConnection() throws SQLException, URISyntaxException {
         URI dbUri = new URI(System.getenv("DATABASE_URL"));
 
-
         String username = dbUri.getUserInfo().split(":")[0];
         String password = dbUri.getUserInfo().split(":")[1];
         String dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath();
@@ -26,31 +25,39 @@ public class Database {
         return DriverManager.getConnection(dbUrl, username, password);
     }
 
-    // Выполнить SQL-запрос
-    public int executeUpdate(String query) throws SQLException {
-        Statement statement = this.connection.createStatement();
-        // Для Insert, Update, Delete
-        return statement.executeUpdate(query);
-    }
-
     // Добавить пользователя в таблицу
     public void addUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
         String query = "INSERT INTO " + this.table + " (username_tg, \"group\", chat_id, \"user.class\") " +
-                "VALUES ('" + username_tg + "','" + group + "'," + chat_id + ",'" +  userClassJSON + "');";
-        executeUpdate(query);
+                "VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username_tg);
+            pstmt.setString(2, group);
+            pstmt.setLong(3, chat_id);
+            pstmt.setString(4, userClassJSON);
+
+            pstmt.executeUpdate();
+        }
     }
 
     // Изменить поля пользователя в таблице
     public void editUser(long chat_id, String username_tg, String group, String userClassJSON) throws SQLException {
-        String query = "UPDATE public.users\n" +
-                "\tSET username_tg='" + username_tg + "', \"group\"='" + group + "', chat_id=" +
-                chat_id + ", \"user.class\"='" + userClassJSON + "'\n" +
-                "\tWHERE chat_id=" + chat_id + ";";
-        executeUpdate(query);
+        // SQL запрос с параметрами-заполнителями
+        String query = "UPDATE public.users SET username_tg = ?, \"group\" = ?, \"user.class\" = ? WHERE chat_id = ?";
+
+        // Создание PreparedStatement и установка значений параметров
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            pstmt.setString(1, username_tg);
+            pstmt.setString(2, group);
+            pstmt.setString(3, userClassJSON);
+            pstmt.setLong(4, chat_id);
+
+            // Выполнение запроса на обновление
+            pstmt.executeUpdate();
+        }
     }
 
-    // Поиск нужного пользователя (возвращает список из двух элементов -
-    // chat_id и JSON)
+    // Поиск нужного пользователя (возвращает список из двух элементов - chat_id и JSON)
     public ArrayList<String> findUser(long chat_id) throws SQLException {
         String query = "SELECT * FROM " + this.table + " WHERE chat_id = " + chat_id;
         PreparedStatement statement = this.connection.prepareStatement(query);
