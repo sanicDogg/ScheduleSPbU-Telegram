@@ -316,7 +316,7 @@ public class Bot extends TelegramLongPollingBot {
             this.user.group = jourScheduleCommand
                     ? "20.Б14-вшж"
                     : "22.М20-ю";
-            String jourLink = "/JOUR/StudentGroupEvents/Primary/367039";
+            String jourLink = "/JOUR/StudentGroupEvents/Primary/393788";
             String lawLink = "/LAWS/StudentGroupEvents/Primary/365853";
             this.user.isFinalUrl = false;
             this.user.finalURL = Schedule.baseURL + (jourScheduleCommand ? jourLink : lawLink);
