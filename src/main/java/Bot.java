@@ -202,6 +202,16 @@ public class Bot extends TelegramLongPollingBot {
                     } else return getErrorMessage();
                 }
             }
+
+            //Если нажали на навигационную кнопку
+            if (msg.equals(this.user.NEXT_BUTTON_TEXT) || msg.equals(this.user.PREV_BUTTON_TEXT)) {
+                if (msg.equals(this.user.NEXT_BUTTON_TEXT)) {
+                    this.user.keyboardPage += 1;
+                } else {
+                    this.user.keyboardPage -= 1;
+                }
+                return outSecondSpec(this.user.currentStudyLevel);
+            }
         }
 
         //Если нажали на одно из меганаправлений(институт)
@@ -473,7 +483,7 @@ public class Bot extends TelegramLongPollingBot {
                 this.user.secondSpecs.add(e.text());
             }
 
-            this.user.replyKeyboardMarkup.setKeyboard(this.user.keyboard);
+            this.user.prepareReplyKeyboardMarkup();
 
             return outTemplateMessage("Выберите программу подготовки", false, true);
         } else return getErrorMessage();
